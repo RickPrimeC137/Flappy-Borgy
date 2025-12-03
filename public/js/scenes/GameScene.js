@@ -309,7 +309,7 @@ export class GameScene extends Phaser.Scene {
     // - GAME_ZOOM = 1  -> comme avant
     // - GAME_ZOOM < 1  -> tout est plus petit (dézoom)
     // - GAME_ZOOM > 1  -> zoom
-    cam.setZoom(GAME_ZOOM || 0.7);
+    cam.setZoom(GAME_ZOOM || 0.8);
     cam.centerOn(GAME_W / 2, GAME_H / 2);
 
     const W = this.scale.width;
@@ -504,4 +504,5 @@ export class GameScene extends Phaser.Scene {
 }
 
 export default GameScene;
+
 
