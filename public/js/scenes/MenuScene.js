@@ -694,13 +694,13 @@ export class MenuScene extends Phaser.Scene {
     container.add(coinsText);
 
     // Liste des skins
-    const selectedKey = skinManager.getSelectedKey();
+    const selectedId = skinManager.getSelectedId();
     let yPos = -120;
     const spacing = 55;
 
-    SKINS_DEF.forEach((skin, idx) => {
-      const owned = skinManager.isSkinOwned(skin.key);
-      const isSelected = skin.key === selectedKey;
+    SKINS_DEF.forEach((skin) => {
+      const owned = skinManager.isOwned(skin.id);
+      const isSelected = skin.id === selectedId;
       const canAfford = coinManager.getBalance() >= skin.price;
 
       // Icône du skin
@@ -709,11 +709,21 @@ export class MenuScene extends Phaser.Scene {
       container.add(icon);
 
       // Nom et prix
-      const info = this.add.text(-95, yPos, `${skin.name}\n${skin.price === 0 ? i18n.t('shop.free') : skin.price + ' 🪙'}`, {
-        fontFamily: 'monospace',
-        fontSize: 12,
-        color: '#fff'
-      }).setOrigin(0, 0.5);
+      const priceLabel =
+        skin.price === 0
+          ? (i18n.t('shop.free') || 'FREE')
+          : `${skin.price} 🪙`;
+
+      const info = this.add.text(
+        -95,
+        yPos,
+        `${skin.name}\n${priceLabel}`,
+        {
+          fontFamily: 'monospace',
+          fontSize: 12,
+          color: '#fff'
+        }
+      ).setOrigin(0, 0.5);
       container.add(info);
 
       // Perk si défini
@@ -732,18 +742,18 @@ export class MenuScene extends Phaser.Scene {
       let clickable = false;
 
       if (isSelected) {
-        btnText = i18n.t('shop.equipped');
+        btnText = i18n.t('shop.equipped') || 'Equipped';
         btnColor = '#17a689';
       } else if (owned) {
-        btnText = i18n.t('shop.select');
+        btnText = i18n.t('shop.select') || 'Select';
         btnColor = '#3d7a5a';
         clickable = true;
       } else if (canAfford) {
-        btnText = i18n.t('shop.buy');
+        btnText = i18n.t('shop.buy') || 'Buy';
         btnColor = '#7a5a3d';
         clickable = true;
       } else {
-        btnText = i18n.t('shop.locked');
+        btnText = i18n.t('shop.locked') || 'Locked';
         btnColor = '#4a4a4a';
       }
 
@@ -757,30 +767,36 @@ export class MenuScene extends Phaser.Scene {
 
       if (clickable) {
         btn.setInteractive({ useHandCursor: true })
-          .on('pointerdown', () => {
+          .on('pointerdown', async () => {
             if (owned) {
-              skinManager.selectSkin(skin.key);
+              // Juste sélectionner
+              skinManager.selectSkin(skin.id);
             } else {
-              if (coinManager.spendCoins(skin.price)) {
-                skinManager.unlockSkin(skin.key);
-                skinManager.selectSkin(skin.key);
-                
-                // Effet de célébration pour l'achat
-                if (this._visualEffects) {
-                  this._visualEffects.showPurchaseSuccess(
-                    this.scale.width / 2,
-                    this.scale.height / 2,
-                    skin.name
-                  );
-                }
+              // Achat + sélection via SkinManager (gère coins + sauvegarde)
+              const result = skinManager.buyAndSelect(skin.id);
+              if (!result.ok) {
+                // pas assez de coins ou autre erreur -> on ne fait rien
+                return;
+              }
+
+              // Effet de célébration pour l'achat
+              if (this._visualEffects) {
+                this._visualEffects.showPurchaseSuccess(
+                  this.scale.width / 2,
+                  this.scale.height / 2,
+                  skin.name
+                );
               }
             }
-            // Rafraîchir le popup après un délai pour l'animation
-            this.time.delayedCall(owned ? 0 : 1800, () => {
+
+            // Mettre à jour l'affichage des coins (menu + popup)
+            this._updateCoinDisplay();
+            coinsText.setText(`💰 ${coinManager.getBalance()} coins`);
+
+            // Rafraîchir le popup après un petit délai (pour laisser l'anim se jouer)
+            this.time.delayedCall(300, () => {
               this._showShopPopup();
             });
-            // Mettre à jour le texte des coins dans le menu
-            this._updateCoinDisplay();
           });
       }
 
@@ -807,7 +823,7 @@ export class MenuScene extends Phaser.Scene {
     let yPos = -120;
     const spacing = 60;
 
-    quests.forEach((quest, idx) => {
+    quests.forEach((quest) => {
       const progress = questManager.getQuestProgress(quest.id);
       const isComplete = progress >= quest.goal;
 
@@ -874,7 +890,7 @@ export class MenuScene extends Phaser.Scene {
     container.add(title);
 
     // Chargement
-    const loadingText = this.add.text(0, 0, i18n.t('common.loading'), {
+    const loadingText = this.add.text(0, 0, i18n.t('common.loading') || 'Loading...', {
       fontFamily: 'monospace',
       fontSize: 16,
       color: '#aaa'
@@ -882,11 +898,16 @@ export class MenuScene extends Phaser.Scene {
     container.add(loadingText);
 
     try {
-      const data = await leaderboardManager.fetchLeaderboard();
+      // On récupère 10 entrées, en tenant compte du mode hard/normal
+      const raw = await leaderboardManager.fetchLeaderboard({
+        limit: 10,
+        isHard: this._hardMode
+      });
+
       loadingText.destroy();
 
-      if (!data || data.length === 0) {
-        const noData = this.add.text(0, 0, i18n.t('leaderboard.noData'), {
+      if (!raw || raw.length === 0) {
+        const noData = this.add.text(0, 0, i18n.t('leaderboard.noData') || 'No scores yet', {
           fontFamily: 'monospace',
           fontSize: 14,
           color: '#aaa'
@@ -895,12 +916,18 @@ export class MenuScene extends Phaser.Scene {
         return;
       }
 
+      const entries = leaderboardManager.formatEntries(raw, 1);
+
       let yPos = -150;
       const spacing = 35;
 
-      data.slice(0, 10).forEach((entry, idx) => {
-        const rank = idx + 1;
-        const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `${rank}.`;
+      entries.forEach((entry) => {
+        const rank = entry.rank;
+        const medal =
+          rank === 1 ? '🥇' :
+          rank === 2 ? '🥈' :
+          rank === 3 ? '🥉' :
+          `${String(rank).padStart(2, '0')}.`;
 
         const row = this.add.text(-140, yPos, `${medal} ${entry.name || 'Anonymous'}`, {
           fontFamily: 'monospace',
@@ -909,7 +936,7 @@ export class MenuScene extends Phaser.Scene {
         }).setOrigin(0, 0.5);
         container.add(row);
 
-        const score = this.add.text(140, yPos, `${entry.score}`, {
+        const score = this.add.text(140, yPos, `${entry.scoreDisplay}`, {
           fontFamily: 'monospace',
           fontSize: 14,
           color: '#17a689'
@@ -919,7 +946,7 @@ export class MenuScene extends Phaser.Scene {
         yPos += spacing;
       });
     } catch (error) {
-      loadingText.setText(i18n.t('leaderboard.error'));
+      loadingText.setText(i18n.t('leaderboard.error') || 'Error loading leaderboard');
     }
   }
 
