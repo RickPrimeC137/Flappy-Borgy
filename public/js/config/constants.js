@@ -20,6 +20,18 @@ export const GAME_W = 360;
 export const GAME_H = 640;
 
 // ============================================================
+// ZOOM GLOBAL DU JEU
+// ============================================================
+
+/**
+ * Zoom global de la caméra en jeu
+ * 1   = taille normale
+ * < 1 = dézoomer (tout plus petit)
+ * > 1 = zoomer (tout plus gros)
+ */
+export const GAME_ZOOM = 0.9; // ajuste entre 0.8 et 1.0 selon ton feeling
+
+// ============================================================
 // PROFIL PHYSIQUE DU JEU
 // ============================================================
 
@@ -262,6 +274,3 @@ export const STORAGE_KEYS = {
   LANG: LANG_STORAGE_KEY,
   HARD_MODE: HARD_MODE_KEY
 };
-
-
-
