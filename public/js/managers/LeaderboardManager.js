@@ -144,6 +144,68 @@ class LeaderboardManager {
     });
   }
 
+  /**
+   * Normalise UNE entrée de leaderboard pour que
+   * le front ait toujours les mêmes champs:
+   *   - name
+   *   - best   (score)
+   *   - rank
+   *
+   * @param {Object} entry - Entrée brute renvoyée par l'API
+   * @param {number} index - Index dans la liste (0-based)
+   * @returns {Object} Entrée normalisée
+   * @private
+   */
+  _normalizeEntry(entry, index) {
+    // On essaie plein de noms de champs possibles
+    const score =
+      entry.best ??
+      entry.best_score ??
+      entry.score ??
+      entry.points ??
+      entry.value ??
+      entry.max_score ??
+      entry.highscore ??
+      0;
+
+    const name =
+      entry.name ??
+      entry.username ??
+      entry.user ??
+      entry.telegram_username ??
+      entry.tg_username ??
+      entry.handle ??
+      `Player ${index + 1}`;
+
+    const rank =
+      entry.rank ??
+      entry.position ??
+      entry.place ??
+      index + 1;
+
+    const normalized = {
+      ...entry,
+      name,
+      best: score,
+      rank
+    };
+
+    // Log debug pour vérifier ce qui arrive de l'API
+    console.log('[LeaderboardManager] raw entry:', entry, '=> normalized:', normalized);
+
+    return normalized;
+  }
+
+  /**
+   * Normalise une liste d'entrées
+   * @param {Array} list
+   * @returns {Array}
+   * @private
+   */
+  _normalizeList(list) {
+    return list.map((e, i) => this._normalizeEntry(e, i));
+  }
+
   // ============================================================
   // SOUMISSION DES SCORES
   // ============================================================
@@ -207,7 +269,7 @@ class LeaderboardManager {
    * @param {number} [options.page=1] - Numéro de page
    * @param {string} [options.scope='all'] - Scope temporel ('all', 'week', 'month')
    * @param {boolean} [options.useCache=true] - Utiliser le cache
-   * @returns {Promise<Array>} Liste des entrées du classement
+   * @returns {Promise<Array>} Liste des entrées du classement (normalisées)
    */
   async fetchLeaderboard(options = {}) {
     const {
@@ -253,9 +315,10 @@ class LeaderboardManager {
       const json = await response.json().catch(() => null);
 
       if (json?.ok && Array.isArray(json.list)) {
-        // Mettre en cache
-        this._setCache(cacheKey, json.list);
-        return json.list;
+        // Normaliser pour que le front ait toujours .name et .best
+        const normalized = this._normalizeList(json.list);
+        this._setCache(cacheKey, normalized);
+        return normalized;
       }
 
       return [];
@@ -270,10 +333,6 @@ class LeaderboardManager {
 
   /**
    * Récupère le classement global (toutes périodes)
-   * @param {number} [limit=10] - Nombre d'entrées
-   * @param {boolean} [isHard=false] - Mode Hard
-   * @param {number} [page=1] - Page
-   * @returns {Promise<Array>} Le classement
    */
   async getGlobalLeaderboard(limit = 10, isHard = false, page = 1) {
     return this.fetchLeaderboard({
@@ -286,10 +345,6 @@ class LeaderboardManager {
 
   /**
    * Récupère le classement de la semaine
-   * @param {number} [limit=10] - Nombre d'entrées
-   * @param {boolean} [isHard=false] - Mode Hard
-   * @param {number} [page=1] - Page
-   * @returns {Promise<Array>} Le classement
    */
   async getWeeklyLeaderboard(limit = 10, isHard = false, page = 1) {
     return this.fetchLeaderboard({
@@ -302,10 +357,6 @@ class LeaderboardManager {
 
   /**
    * Récupère le classement du mois
-   * @param {number} [limit=10] - Nombre d'entrées
-   * @param {boolean} [isHard=false] - Mode Hard
-   * @param {number} [page=1] - Page
-   * @returns {Promise<Array>} Le classement
    */
   async getMonthlyLeaderboard(limit = 10, isHard = false, page = 1) {
     return this.fetchLeaderboard({
@@ -320,32 +371,14 @@ class LeaderboardManager {
   // NAVIGATION PAGINÉE
   // ============================================================
 
-  /**
-   * Crée un gestionnaire de pagination pour le leaderboard
-   * @param {boolean} [isHard=false] - Mode Hard
-   * @param {number} [pageSize=10] - Taille de page
-   * @returns {Object} Gestionnaire de pagination
-   */
   createPaginator(isHard = false, pageSize = 10) {
     let currentPage = 1;
     let currentScope = SCOPES.ALL;
     let lastResultLength = 0;
 
-    const loadPage = async (page) => {
-      currentPage = Math.max(1, page);
-      const result = await this.fetchLeaderboard({
-        limit: pageSize,
-        isHard,
-        page: currentPage,
-        scope: currentScope
-      });
-      lastResultLength = result.length;
-      return result;
-    };
-
-    const loadPrevious = async () => {
-      if (currentPage > 1) {
-        currentPage--;
+    return {
+      loadPage: async (page) => {
+        currentPage = Math.max(1, page);
         const result = await this.fetchLeaderboard({
           limit: pageSize,
           isHard,
@@ -354,41 +387,60 @@ class LeaderboardManager {
         });
         lastResultLength = result.length;
         return result;
-      }
-      return [];
-    };
+      },
 
-    const loadNext = async () => {
-      currentPage++;
-      const result = await this.fetchLeaderboard({
-        limit: pageSize,
-        isHard,
-        page: currentPage,
-        scope: currentScope
-      });
-      lastResultLength = result.length;
-      return result;
-    };
+      loadFirst: async () => {
+        currentPage = 1;
+        const result = await this.fetchLeaderboard({
+          limit: pageSize,
+          isHard,
+          page: currentPage,
+          scope: currentScope
+        });
+        lastResultLength = result.length;
+        return result;
+      },
 
-    const setScope = async (scope) => {
-      currentScope = scope;
-      currentPage = 1;
-      const result = await this.fetchLeaderboard({
-        limit: pageSize,
-        isHard,
-        page: 1,
-        scope: currentScope
-      });
-      lastResultLength = result.length;
-      return result;
-    };
+      loadPrevious: async () => {
+        if (currentPage > 1) {
+          currentPage--;
+          const result = await this.fetchLeaderboard({
+            limit: pageSize,
+            isHard,
+            page: currentPage,
+            scope: currentScope
+          });
+          lastResultLength = result.length;
+          return result;
+        }
+        return [];
+      },
 
-    return {
-      loadPage,
-      loadFirst: () => loadPage(1),
-      loadPrevious,
-      loadNext,
-      setScope,
+      loadNext: async () => {
+        currentPage++;
+        const result = await this.fetchLeaderboard({
+          limit: pageSize,
+          isHard,
+          page: currentPage,
+          scope: currentScope
+        });
+        lastResultLength = result.length;
+        return result;
+      },
+
+      setScope: async (scope) => {
+        currentScope = scope;
+        currentPage = 1;
+        const result = await this.fetchLeaderboard({
+          limit: pageSize,
+          isHard,
+          page: 1,
+          scope: currentScope
+        });
+        lastResultLength = result.length;
+        return result;
+      },
+
       getCurrentPage: () => currentPage,
       getCurrentScope: () => currentScope,
       hasPrevious: () => currentPage > 1,
@@ -400,96 +452,53 @@ class LeaderboardManager {
   // ÉTAT ET CACHE
   // ============================================================
 
-  /**
-   * Vérifie si une requête est en cours
-   * @returns {boolean}
-   */
   isLoading() {
     return this._loading;
   }
 
-  /**
-   * Retourne la dernière erreur
-   * @returns {Error|null}
-   */
   getLastError() {
     return this._lastError;
   }
 
-  /**
-   * Vide le cache
-   */
   clearCache() {
     this._cache.clear();
   }
 
-  /**
-   * Définit la durée de validité du cache
-   * @param {number} duration - Durée en ms
-   */
   setCacheDuration(duration) {
     this._cacheDuration = Math.max(0, duration);
   }
 
   // ============================================================
-  // FORMATAGE ET AFFICHAGE
+  // FORMATAGE POUR L'UI (si tu l'utilises)
   // ============================================================
 
-  /**
-   * Formate une entrée du leaderboard pour l'affichage
-   * @param {Object} entry - L'entrée du leaderboard
-   * @param {number} rank - Le rang (1-based)
-   * @returns {Object} L'entrée formatée
-   */
   formatEntry(entry, rank) {
-    if (!entry || typeof entry !== 'object') {
-      return {
-        rank,
-        rankDisplay: String(rank).padStart(2, '0') + '.',
-        name: 'Player',
-        score: 0,
-        scoreDisplay: '0'
-      };
-    }
-
-    // Log pour voir la forme exacte des données renvoyées par l'API
-    console.log('[LeaderboardManager] raw leaderboard entry:', entry);
-
-    // Nom à afficher (on essaie plusieurs champs possibles)
-    const name =
-      entry.name ||
-      entry.username ||
-      entry.player ||
-      entry.handle ||
-      'Player';
-
-    // Score : on teste plusieurs noms de champs possibles
-    const rawScore =
+    const best =
       entry.best ??
-      entry.score ??
       entry.best_score ??
+      entry.score ??
+      entry.points ??
       entry.value ??
       0;
 
-    const score = Number(rawScore) || 0;
+    const name =
+      entry.name ??
+      entry.username ??
+      entry.user ??
+      entry.telegram_username ??
+      entry.tg_username ??
+      `Player ${rank}`;
 
     return {
       rank,
       rankDisplay: String(rank).padStart(2, '0') + '.',
       name,
-      score,
-      scoreDisplay: String(score)
+      score: best,
+      scoreDisplay: String(best)
     };
   }
 
-  /**
-   * Formate une liste d'entrées avec les rangs
-   * @param {Array} entries - Les entrées
-   * @param {number} [startRank=1] - Rang de départ
-   * @returns {Array} Les entrées formatées
-   */
   formatEntries(entries, startRank = 1) {
-    if (!Array.isArray(entries)) return [];
     return entries.map((entry, index) =>
       this.formatEntry(entry, startRank + index)
     );
