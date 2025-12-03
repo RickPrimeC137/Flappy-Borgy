@@ -29,7 +29,7 @@ export const GAME_H = 1536;
  * < 1 = dézoomer (tout plus petit, plus d'espace visible)
  * > 1 = zoomer (tout plus gros, moins d'espace visible)
  */
-export const GAME_ZOOM = 0.8; // ajuste entre 0.8 et 1.0 selon ton feeling
+export const GAME_ZOOM = 1; // ajuste entre 0.8 et 1.0 selon ton feeling
 
 // ============================================================
 // PROFIL PHYSIQUE DU JEU
@@ -274,4 +274,5 @@ export const STORAGE_KEYS = {
   LANG: LANG_STORAGE_KEY,
   HARD_MODE: HARD_MODE_KEY
 };
+
 
