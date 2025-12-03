@@ -4,53 +4,43 @@ import { GAME_W, GAME_H } from './constants.js';
 
 /**
  * Crée la configuration Phaser du jeu.
- * @param {Array<typeof Phaser.Scene>} scenes - Liste des scènes à charger.
+ * @param {Array<typeof Phaser.Scene>} scenes
  * @returns {Phaser.Types.Core.GameConfig}
  */
 export function createGameConfig(scenes = []) {
   return {
     type: Phaser.AUTO,
+
+    // <div id="game-container"> dans index.html
+    parent: 'game-container',
+
+    // Taille “logique” du jeu (celle que tu utilises partout)
+    width: GAME_W,
+    height: GAME_H,
+
     backgroundColor: '#000000',
 
-    // Gestion du scale / responsive
     scale: {
+      // Adapte au mobile / navigateur en gardant le ratio
       mode: Phaser.Scale.FIT,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
-
-      // Taille “logique” de ton jeu
-      width: GAME_W,
-      height: GAME_H,
-
-      // Limites mini / maxi pour adapter au mobile
-      min: {
-        width: 320,
-        height: 480,
-      },
-      max: {
-        width: GAME_W,
-        height: GAME_H,
-      }
+      autoCenter: Phaser.Scale.CENTER_BOTH
     },
 
-    // Physique
     physics: {
       default: 'arcade',
       arcade: {
-        gravity: { y: 0 }, // La vraie gravité est gérée dans le GameScene
+        gravity: { y: 0 }, // la vraie gravité est gérée dans GameScene
         debug: false
       }
     },
 
-    // Rendu
     render: {
       pixelArt: true,
       antialias: true
     },
 
-    // Scènes
     scene: scenes
   };
 }
 
-// Export par défaut (optionnel mais propre)
 export default createGameConfig;
