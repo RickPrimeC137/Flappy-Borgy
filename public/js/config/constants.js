@@ -48,7 +48,7 @@ export const PROFILE = {
   jump: -390,
   pipeSpeed: -220,
   // un peu plus de place entre les tuyaux pour respirer sur mobile
-  gap: 290,          // avant: 260
+  gap: 280,          // avant: 260
   spawnDelay: 2450
 };
 
@@ -66,7 +66,7 @@ export const PIPE_BODY_W = 0.92;
 export const PIPE_W_DISPLAY = 168;   // avant: 180 (tuyaux légèrement plus fins)
 
 /** Scale du joueur (légèrement réduit pour bien caser tous les skins) */
-export const PLAYER_SCALE = 0.16;    // avant: 0.20 (Borgy plus petit)
+export const PLAYER_SCALE = 0.20;    // avant: 0.20 (Borgy plus petit)
 
 /** Largeur de la hitbox des tuyaux (1 = largeur complète, 0.6 = plus serré) */
 export const PIPE_HITBOX_W = 0.6;
@@ -140,7 +140,7 @@ export const BONUS_DURATION = 15000;
 export const CLOUD_TOP_HEIGHT_PCT = 0.11;
 
 /** Hauteur du nuage du bas (% de la hauteur totale) */
-export const CLOUD_BOTTOM_HEIGHT_PCT = 0.22;
+export const CLOUD_BOTTOM_HEIGHT_PCT = 0.10;
 
 /** Scale X supplémentaire pour éviter les trous sur les côtés */
 export const CLOUD_EXTRA_SCALE_X = 1.25;
@@ -274,5 +274,6 @@ export const STORAGE_KEYS = {
   LANG: LANG_STORAGE_KEY,
   HARD_MODE: HARD_MODE_KEY
 };
+
 
 
