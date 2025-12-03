@@ -53,7 +53,7 @@ export const PIPE_BODY_W = 0.92;
 export const PIPE_W_DISPLAY = 180;
 
 /** Scale du joueur (légèrement réduit pour bien caser tous les skins) */
-export const PLAYER_SCALE = 0.14;
+export const PLAYER_SCALE = 0.20;
 
 /** Largeur de la hitbox des tuyaux (1 = largeur complète, 0.6 = plus serré) */
 export const PIPE_HITBOX_W = 0.6;
@@ -260,4 +260,5 @@ export const STORAGE_KEYS = {
   SKINS: SKINS_STORAGE_KEY,
   LANG: LANG_STORAGE_KEY,
   HARD_MODE: HARD_MODE_KEY
+
 };
