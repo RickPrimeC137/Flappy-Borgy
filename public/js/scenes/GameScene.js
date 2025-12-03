@@ -20,7 +20,8 @@ import {
   PROFILE,
   DIFF,
   KILL_MARGIN,
-  STORAGE_KEYS
+  STORAGE_KEYS,
+  GAME_ZOOM          // ★ nouveau
 } from '../config/constants.js';
 import { SKINS_DEF, PIPE_CONFIGS } from '../config/skinConfig.js';
 import storageManager from '../managers/StorageManager.js';
@@ -302,6 +303,13 @@ export class GameScene extends Phaser.Scene {
     const W = this.scale.width;
     const H = this.scale.height;
     const cx = W / 2;
+
+    // ============================================================
+    // CAMERA / ZOOM GLOBAL
+    // ============================================================
+    // On applique le zoom défini dans constants.js pour "dézoomer" le jeu
+    this.cameras.main.setZoom(GAME_ZOOM);
+    this.cameras.main.centerOn(GAME_W / 2, GAME_H / 2);
 
     // ============================================================
     // EFFETS VISUELS
