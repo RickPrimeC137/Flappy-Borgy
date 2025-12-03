@@ -1,77 +1,84 @@
 /**
- * Index Global - Point d'entrée principal pour tous les modules
+ * Entities Index - Point d'entrée pour toutes les entités du jeu
  * 
- * Ce fichier réexporte tous les modules principaux de Flappy Borgy
- * pour faciliter les imports dans d'autres projets ou composants.
+ * Ce fichier réexporte toutes les entités (sprites, objets de jeu)
+ * pour une importation simplifiée.
  * 
- * @module FlappyBorgy
- * 
- * @example
- * // Import sélectif
- * import { GAME_W, GAME_H } from './js/index.js';
- * import { storageManager, audioManager } from './js/index.js';
- * import { PreloadScene, MenuScene, GameScene } from './js/index.js';
- * 
- * @example
- * // Import complet
- * import * as FlappyBorgy from './js/index.js';
- * console.log(FlappyBorgy.GAME_W); // 1024
+ * @module entities
  */
 
 // ============================================================
-// CONFIGURATION
+// EXPORTS - PLAYER
 // ============================================================
 
-export * from './config/index.js';
+export { Player, default as PlayerDefault } from './Player.js';
 
 // ============================================================
-// MANAGERS
+// EXPORTS - PIPES
 // ============================================================
 
-export * from './managers/index.js';
+export { Pipe, PipeFactory } from './Pipe.js';
 
 // ============================================================
-// ENTITIES
+// EXPORTS - BONUS
 // ============================================================
 
-export * from './entities/index.js';
+export { Bonus, BonusManager } from './Bonus.js';
 
 // ============================================================
-// SCENES
+// EXPORTS - BORGY COIN
 // ============================================================
 
-export * from './scenes/index.js';
+export { BorgyCoin, BorgyCoinManager } from './BorgyCoin.js';
 
 // ============================================================
-// INTERNATIONALISATION
+// EXPORTS - BOT (ROBOT)
 // ============================================================
 
-export {
-  default as i18n,
-  t,
-  setLang,
-  currentLang,
-  toggleLang,
-  loadLang,
-  saveLang,
-  hasTranslation,
-  getAllTranslations,
-  I18nManager
-} from './i18n/i18nManager.js';
-
-// Alias pour compatibilité
-export { setLang as setLanguage, currentLang as getLanguage } from './i18n/i18nManager.js';
-
-export { I18N, FR, EN } from './i18n/translations.js';
+export { Bot, BotManager } from './Bot.js';
 
 // ============================================================
-// UTILITAIRES
+// EXPORTS - CLOUD
 // ============================================================
 
-export * from './utils/index.js';
+export { Cloud, CloudManager } from './Cloud.js';
 
 // ============================================================
-// MAIN / INIT
+// EXPORTS - BACKGROUND
 // ============================================================
 
-export { initGame, initTelegramWebApp, TG } from './main.js';
+export { Background, BackgroundFactory } from './Background.js';
+
+// ============================================================
+// ALL ENTITIES LIST
+// ============================================================
+
+/**
+ * Liste de toutes les classes d'entités disponibles
+ * @type {Object}
+ */
+export const ENTITIES = {
+  Player,
+  Pipe,
+  PipeFactory,
+  Bonus,
+  BonusManager,
+  BorgyCoin,
+  BorgyCoinManager,
+  Bot,
+  BotManager,
+  Cloud,
+  CloudManager,
+  Background,
+  BackgroundFactory
+};
+
+import { Player } from './Player.js';
+import { Pipe, PipeFactory } from './Pipe.js';
+import { Bonus, BonusManager } from './Bonus.js';
+import { BorgyCoin, BorgyCoinManager } from './BorgyCoin.js';
+import { Bot, BotManager } from './Bot.js';
+import { Cloud, CloudManager } from './Cloud.js';
+import { Background, BackgroundFactory } from './Background.js';
+
+export default ENTITIES;
