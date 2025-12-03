@@ -66,7 +66,7 @@ export const PIPE_BODY_W = 0.92;
 export const PIPE_W_DISPLAY = 168;   // avant: 180 (tuyaux légèrement plus fins)
 
 /** Scale du joueur (légèrement réduit pour bien caser tous les skins) */
-export const PLAYER_SCALE = 0.20;    // avant: 0.20 (Borgy plus petit)
+export const PLAYER_SCALE = 0.22;    // avant: 0.20 (Borgy plus petit)
 
 /** Largeur de la hitbox des tuyaux (1 = largeur complète, 0.6 = plus serré) */
 export const PIPE_HITBOX_W = 0.6;
@@ -104,7 +104,7 @@ export const BG_XMAS_KEY = "bg_noel";
 // ============================================================
 
 /** Pourcentage de la hauteur pour le haut de la zone de jeu */
-export const PLAYFIELD_TOP_PCT = 0.20;
+export const PLAYFIELD_TOP_PCT = 0.30;
 
 /** Pourcentage de la hauteur pour le bas de la zone de jeu */
 export const PLAYFIELD_BOT_PCT = 0.85;
@@ -140,7 +140,7 @@ export const BONUS_DURATION = 15000;
 export const CLOUD_TOP_HEIGHT_PCT = 0.11;
 
 /** Hauteur du nuage du bas (% de la hauteur totale) */
-export const CLOUD_BOTTOM_HEIGHT_PCT = 0.10;
+export const CLOUD_BOTTOM_HEIGHT_PCT = 0.02;
 
 /** Scale X supplémentaire pour éviter les trous sur les côtés */
 export const CLOUD_EXTRA_SCALE_X = 1.25;
@@ -274,6 +274,7 @@ export const STORAGE_KEYS = {
   LANG: LANG_STORAGE_KEY,
   HARD_MODE: HARD_MODE_KEY
 };
+
 
 
 
