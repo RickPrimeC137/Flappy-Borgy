@@ -13,10 +13,10 @@
 // DIMENSIONS DU JEU
 // ============================================================
 
-/** Largeur du canvas de jeu */
+/** Largeur du canvas de jeu (monde logique Phaser) */
 export const GAME_W = 1024;
 
-/** Hauteur du canvas de jeu */
+/** Hauteur du canvas de jeu (monde logique Phaser) */
 export const GAME_H = 1536;
 
 // ============================================================
@@ -26,10 +26,10 @@ export const GAME_H = 1536;
 /**
  * Zoom global de la caméra en jeu
  * 1   = taille normale
- * < 1 = dézoomer (tout plus petit)
- * > 1 = zoomer (tout plus gros)
+ * < 1 = dézoomer (tout plus petit, plus d'espace visible)
+ * > 1 = zoomer (tout plus gros, moins d'espace visible)
  */
-export const GAME_ZOOM = 0.8; // ajuste entre 0.8 et 1.0 selon ton feeling
+export const GAME_ZOOM = 0.7; // ajuste entre 0.8 et 1.0 selon ton feeling
 
 // ============================================================
 // PROFIL PHYSIQUE DU JEU
@@ -48,7 +48,7 @@ export const PROFILE = {
   jump: -390,
   pipeSpeed: -220,
   // un peu plus de place entre les tuyaux pour respirer sur mobile
-  gap: 290,          // ★ avant: 260
+  gap: 290,          // avant: 260
   spawnDelay: 2450
 };
 
@@ -63,10 +63,10 @@ export const PAD = 2;
 export const PIPE_BODY_W = 0.92;
 
 /** Largeur d'affichage des tuyaux en pixels */
-export const PIPE_W_DISPLAY = 168;   // ★ avant: 180 (tuyaux légèrement plus fins)
+export const PIPE_W_DISPLAY = 168;   // avant: 180 (tuyaux légèrement plus fins)
 
 /** Scale du joueur (légèrement réduit pour bien caser tous les skins) */
-export const PLAYER_SCALE = 0.16;    // ★ avant: 0.20 (Borgy plus petit)
+export const PLAYER_SCALE = 0.16;    // avant: 0.20 (Borgy plus petit)
 
 /** Largeur de la hitbox des tuyaux (1 = largeur complète, 0.6 = plus serré) */
 export const PIPE_HITBOX_W = 0.6;
@@ -274,6 +274,3 @@ export const STORAGE_KEYS = {
   LANG: LANG_STORAGE_KEY,
   HARD_MODE: HARD_MODE_KEY
 };
-
-
-
