@@ -14,10 +14,10 @@
 // ============================================================
 
 /** Largeur du canvas de jeu */
-export const GAME_W = 360;
+export const GAME_W = 1024;
 
 /** Hauteur du canvas de jeu */
-export const GAME_H = 640;
+export const GAME_H = 1536;
 
 // ============================================================
 // ZOOM GLOBAL DU JEU
@@ -29,7 +29,7 @@ export const GAME_H = 640;
  * < 1 = dézoomer (tout plus petit)
  * > 1 = zoomer (tout plus gros)
  */
-export const GAME_ZOOM = 0.4; // ajuste entre 0.8 et 1.0 selon ton feeling
+export const GAME_ZOOM = 0.5; // ajuste entre 0.8 et 1.0 selon ton feeling
 
 // ============================================================
 // PROFIL PHYSIQUE DU JEU
@@ -274,4 +274,5 @@ export const STORAGE_KEYS = {
   LANG: LANG_STORAGE_KEY,
   HARD_MODE: HARD_MODE_KEY
 };
+
 
