@@ -48,7 +48,7 @@ export const PROFILE = {
   jump: -390,
   pipeSpeed: -220,
   // un peu plus de place entre les tuyaux pour respirer sur mobile
-  gap: 280,          // avant: 260
+  gap: 230,          // avant: 260
   spawnDelay: 2450
 };
 
@@ -274,6 +274,7 @@ export const STORAGE_KEYS = {
   LANG: LANG_STORAGE_KEY,
   HARD_MODE: HARD_MODE_KEY
 };
+
 
 
 
