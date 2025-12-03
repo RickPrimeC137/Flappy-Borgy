@@ -7,7 +7,7 @@
  * @module entities/Background
  */
 
-import { BG_KEY, BG_HARD_KEY, BG_XMAS_KEY } from '../config/constants.js';
+import { BG_KEY, BG_HARD_KEY, BG_XMAS_KEY, GAME_ZOOM } from '../config/constants.js';
 import { BACKGROUNDS } from '../config/skinConfig.js';
 
 /**
@@ -88,6 +88,32 @@ export class Background {
   }
 
   /**
+   * Calcule et applique le scale de l'image pour couvrir l'écran
+   * en tenant compte du zoom de la caméra.
+   * @private
+   */
+  _fitToScreen() {
+    if (!this.image) return;
+
+    const W = this.scene.scale.width;
+    const H = this.scene.scale.height;
+
+    const cam = this.scene.cameras.main;
+    // Zoom effectif : on prend celui de la caméra si défini,
+    // sinon GAME_ZOOM, sinon 1 (sécurité)
+    const zoom = cam ? (cam.zoom || GAME_ZOOM || 1) : (GAME_ZOOM || 1);
+
+    // Taille "visible" en coordonnées monde = taille écran / zoom
+    const visibleW = W / zoom;
+    const visibleH = H / zoom;
+
+    const scaleX = visibleW / this.image.width;
+    const scaleY = visibleH / this.image.height;
+
+    this.image.setScale(Math.max(scaleX, scaleY));
+  }
+
+  /**
    * Crée et affiche l'arrière-plan
    * @returns {Background} L'instance pour le chaînage
    */
@@ -109,10 +135,8 @@ export class Background {
       .setDepth(-10)
       .setScrollFactor(0);
     
-    // Scale pour couvrir l'écran
-    const scaleX = W / this.image.width;
-    const scaleY = H / this.image.height;
-    this.image.setScale(Math.max(scaleX, scaleY));
+    // ⚙️ Adapter au zoom
+    this._fitToScreen();
     
     // Effet de neige en mode Noël
     if (this.currentTheme === BackgroundTheme.XMAS) {
@@ -164,18 +188,17 @@ export class Background {
     
     // Mise à jour de l'image
     if (this.image) {
-      const textureKey = this._getTextureKey();
+      let textureKey = this._getTextureKey();
       
-      if (this.scene.textures.exists(textureKey)) {
-        this.image.setTexture(textureKey);
-        
-        // Recalcul du scale
-        const W = this.scene.scale.width;
-        const H = this.scene.scale.height;
-        const scaleX = W / this.image.width;
-        const scaleY = H / this.image.height;
-        this.image.setScale(Math.max(scaleX, scaleY));
+      if (!this.scene.textures.exists(textureKey)) {
+        console.warn(`Background texture "${textureKey}" not found, falling back to default`);
+        textureKey = BG_KEY;
       }
+
+      this.image.setTexture(textureKey);
+      
+      // Recalcul du scale en fonction du zoom
+      this._fitToScreen();
     }
     
     // Gestion de l'effet de neige
