@@ -14,23 +14,24 @@ export function createGameConfig(scenes = []) {
     pixelArt: true,
 
     // ⭐ Partie importante pour le mobile
-    scale: {
-      mode: Phaser.Scale.FIT,             // adapte au viewport
-      autoCenter: Phaser.Scale.CENTER_BOTH,
-      width: GAME_W,                      // résolution virtuelle
-      height: GAME_H
-    },
-
-    physics: {
-      default: 'arcade',
-      arcade: {
-        gravity: { y: 1700 },             // ce que tu avais déjà
-        debug: false
-      }
-    },
-
-    scene: scenes
-  };
-}
+   scale: {
+  mode: Phaser.Scale.FIT,
+  autoCenter: Phaser.Scale.CENTER_BOTH,
+  width: GAME_W,
+  height: GAME_H,
+  min: {
+    width: 320,
+    height: 480
+  },
+  max: {
+    width: 1024,
+    height: 1536
+  }
+},
+render: {
+  pixelArt: true,
+  antialias: true
+},
 
 export default createGameConfig;
+
