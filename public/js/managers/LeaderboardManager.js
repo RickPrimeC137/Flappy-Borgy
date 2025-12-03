@@ -1,12 +1,12 @@
 /**
  * LeaderboardManager.js - Gestionnaire du classement
- * 
+ *
  * Ce module gère la communication avec l'API backend pour :
  * - Soumission des scores
  * - Récupération du classement (paginé)
  * - Filtrage par période (global, semaine, mois)
  * - Support des modes Normal et Hard
- * 
+ *
  * @module LeaderboardManager
  */
 
@@ -156,7 +156,7 @@ class LeaderboardManager {
    */
   async postScore(score, isHard = false) {
     const initData = this._getTelegramInitData();
-    
+
     if (!initData) {
       console.warn('[LeaderboardManager] Pas de données Telegram, score non soumis');
       return { success: false, error: 'no_telegram_data' };
@@ -168,13 +168,13 @@ class LeaderboardManager {
 
       const response = await fetch(`${API_BASE}/api/score`, {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json' 
+        headers: {
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          score, 
-          initData, 
-          mode: isHard ? MODES.HARD : MODES.NORMAL 
+        body: JSON.stringify({
+          score,
+          initData,
+          mode: isHard ? MODES.HARD : MODES.NORMAL
         })
       });
 
@@ -241,8 +241,8 @@ class LeaderboardManager {
       // Anti-cache pour éviter les résultats stales
       url.searchParams.set('_', Date.now().toString());
 
-      const response = await fetch(url.toString(), { 
-        cache: 'no-store' 
+      const response = await fetch(url.toString(), {
+        cache: 'no-store'
       });
 
       if (!response.ok) {
@@ -251,7 +251,7 @@ class LeaderboardManager {
       }
 
       const json = await response.json().catch(() => null);
-      
+
       if (json?.ok && Array.isArray(json.list)) {
         // Mettre en cache
         this._setCache(cacheKey, json.list);
@@ -331,108 +331,67 @@ class LeaderboardManager {
     let currentScope = SCOPES.ALL;
     let lastResultLength = 0;
 
+    const loadPage = async (page) => {
+      currentPage = Math.max(1, page);
+      const result = await this.fetchLeaderboard({
+        limit: pageSize,
+        isHard,
+        page: currentPage,
+        scope: currentScope
+      });
+      lastResultLength = result.length;
+      return result;
+    };
+
+    const loadPrevious = async () => {
+      if (currentPage > 1) {
+        currentPage--;
+        const result = await this.fetchLeaderboard({
+          limit: pageSize,
+          isHard,
+          page: currentPage,
+          scope: currentScope
+        });
+        lastResultLength = result.length;
+        return result;
+      }
+      return [];
+    };
+
+    const loadNext = async () => {
+      currentPage++;
+      const result = await this.fetchLeaderboard({
+        limit: pageSize,
+        isHard,
+        page: currentPage,
+        scope: currentScope
+      });
+      lastResultLength = result.length;
+      return result;
+    };
+
+    const setScope = async (scope) => {
+      currentScope = scope;
+      currentPage = 1;
+      const result = await this.fetchLeaderboard({
+        limit: pageSize,
+        isHard,
+        page: 1,
+        scope: currentScope
+      });
+      lastResultLength = result.length;
+      return result;
+    };
+
     return {
-      /**
-       * Charge une page spécifique
-       * @param {number} page - Numéro de page
-       * @returns {Promise<Array>}
-       */
-      loadPage: async (page) => {
-        currentPage = Math.max(1, page);
-        const result = await this.fetchLeaderboard({
-          limit: pageSize,
-          isHard,
-          page: currentPage,
-          scope: currentScope
-        });
-        lastResultLength = result.length;
-        return result;
-      },
-
-      /**
-       * Charge la première page
-       * @returns {Promise<Array>}
-       */
-      loadFirst: async () => {
-        return this.loadPage ? await arguments.callee.call(this, 1) : [];
-      },
-
-      /**
-       * Charge la page précédente
-       * @returns {Promise<Array>}
-       */
-      loadPrevious: async () => {
-        if (currentPage > 1) {
-          currentPage--;
-          return await this.fetchLeaderboard({
-            limit: pageSize,
-            isHard,
-            page: currentPage,
-            scope: currentScope
-          }).then(result => {
-            lastResultLength = result.length;
-            return result;
-          });
-        }
-        return [];
-      },
-
-      /**
-       * Charge la page suivante
-       * @returns {Promise<Array>}
-       */
-      loadNext: async () => {
-        currentPage++;
-        const result = await this.fetchLeaderboard({
-          limit: pageSize,
-          isHard,
-          page: currentPage,
-          scope: currentScope
-        });
-        lastResultLength = result.length;
-        return result;
-      },
-
-      /**
-       * Change le scope et recharge
-       * @param {string} scope - Nouveau scope
-       * @returns {Promise<Array>}
-       */
-      setScope: async (scope) => {
-        currentScope = scope;
-        currentPage = 1;
-        const result = await this.fetchLeaderboard({
-          limit: pageSize,
-          isHard,
-          page: 1,
-          scope: currentScope
-        });
-        lastResultLength = result.length;
-        return result;
-      },
-
-      /**
-       * Retourne la page actuelle
-       * @returns {number}
-       */
+      loadPage,
+      loadFirst: () => loadPage(1),
+      loadPrevious,
+      loadNext,
+      setScope,
       getCurrentPage: () => currentPage,
-
-      /**
-       * Retourne le scope actuel
-       * @returns {string}
-       */
       getCurrentScope: () => currentScope,
-
-      /**
-       * Vérifie s'il y a une page précédente
-       * @returns {boolean}
-       */
       hasPrevious: () => currentPage > 1,
-
-      /**
-       * Vérifie s'il y a potentiellement une page suivante
-       * @returns {boolean}
-       */
       hasNext: () => lastResultLength >= pageSize
     };
   }
@@ -483,12 +442,43 @@ class LeaderboardManager {
    * @returns {Object} L'entrée formatée
    */
   formatEntry(entry, rank) {
+    if (!entry || typeof entry !== 'object') {
+      return {
+        rank,
+        rankDisplay: String(rank).padStart(2, '0') + '.',
+        name: 'Player',
+        score: 0,
+        scoreDisplay: '0'
+      };
+    }
+
+    // Log pour voir la forme exacte des données renvoyées par l'API
+    console.log('[LeaderboardManager] raw leaderboard entry:', entry);
+
+    // Nom à afficher (on essaie plusieurs champs possibles)
+    const name =
+      entry.name ||
+      entry.username ||
+      entry.player ||
+      entry.handle ||
+      'Player';
+
+    // Score : on teste plusieurs noms de champs possibles
+    const rawScore =
+      entry.best ??
+      entry.score ??
+      entry.best_score ??
+      entry.value ??
+      0;
+
+    const score = Number(rawScore) || 0;
+
     return {
-      rank: rank,
+      rank,
       rankDisplay: String(rank).padStart(2, '0') + '.',
-      name: entry.name || 'Player',
-      score: entry.best || 0,
-      scoreDisplay: String(entry.best || 0)
+      name,
+      score,
+      scoreDisplay: String(score)
     };
   }
 
@@ -499,7 +489,8 @@ class LeaderboardManager {
    * @returns {Array} Les entrées formatées
    */
   formatEntries(entries, startRank = 1) {
-    return entries.map((entry, index) => 
+    if (!Array.isArray(entries)) return [];
+    return entries.map((entry, index) =>
       this.formatEntry(entry, startRank + index)
     );
   }
