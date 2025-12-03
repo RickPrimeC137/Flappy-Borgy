@@ -805,7 +805,7 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-  /**
+    /**
    * Affiche le popup des quêtes
    * @private
    */
@@ -819,12 +819,32 @@ export class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5);
     container.add(title);
 
-    const quests = questManager.getQuests();
+    // --- RÉCUP DES QUÊTES DE FAÇON SÛRE ---
+    const quests =
+      (typeof questManager.getQuests === 'function' && questManager.getQuests()) ||
+      (typeof questManager.getAllQuests === 'function' && questManager.getAllQuests()) ||
+      questManager.quests ||
+      [];
+
+    // Si vraiment rien → petit message
+    if (!quests || quests.length === 0) {
+      const noData = this.add.text(0, 0, i18n.t('quests.noQuests') || 'No quests yet', {
+        fontFamily: 'monospace',
+        fontSize: 14,
+        color: '#aaa'
+      }).setOrigin(0.5);
+      container.add(noData);
+      return;
+    }
+
     let yPos = -120;
     const spacing = 60;
 
     quests.forEach((quest) => {
-      const progress = questManager.getQuestProgress(quest.id);
+      const progress = questManager.getQuestProgress
+        ? questManager.getQuestProgress(quest.id)
+        : (quest.progress || 0);
+
       const isComplete = progress >= quest.goal;
 
       // Nom de la quête
@@ -852,7 +872,11 @@ export class MenuScene extends Phaser.Scene {
       container.add(reward);
 
       // Bouton Claim si complété
-      if (isComplete && !questManager.isRewardClaimed(quest.id)) {
+      if (
+        isComplete &&
+        questManager.isRewardClaimed &&
+        !questManager.isRewardClaimed(quest.id)
+      ) {
         const claimBtn = this.add.text(0, yPos + 20, i18n.t('quests.claim'), {
           fontFamily: 'monospace',
           fontSize: 12,
@@ -863,8 +887,12 @@ export class MenuScene extends Phaser.Scene {
           .setOrigin(0.5)
           .setInteractive({ useHandCursor: true })
           .on('pointerdown', () => {
-            questManager.claimReward(quest.id);
-            coinManager.addCoins(quest.reward);
+            if (questManager.claimReward) {
+              questManager.claimReward(quest.id);
+            }
+            if (coinManager.addCoins) {
+              coinManager.addCoins(quest.reward);
+            }
             this._showQuestsPopup();
             this._updateCoinDisplay();
           });
@@ -962,3 +990,4 @@ export class MenuScene extends Phaser.Scene {
 }
 
 export default MenuScene;
+
