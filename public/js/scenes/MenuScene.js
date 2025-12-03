@@ -805,7 +805,7 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-    /**
+     /**
    * Affiche le popup des quêtes
    * @private
    */
@@ -819,36 +819,46 @@ export class MenuScene extends Phaser.Scene {
     }).setOrigin(0.5);
     container.add(title);
 
-    // --- RÉCUP DES QUÊTES DE FAÇON SÛRE ---
-    const quests =
-      (typeof questManager.getQuests === 'function' && questManager.getQuests()) ||
-      (typeof questManager.getAllQuests === 'function' && questManager.getAllQuests()) ||
-      questManager.quests ||
-      [];
-
-    // Si vraiment rien → petit message
-    if (!quests || quests.length === 0) {
-      const noData = this.add.text(0, 0, i18n.t('quests.noQuests') || 'No quests yet', {
-        fontFamily: 'monospace',
-        fontSize: 14,
-        color: '#aaa'
-      }).setOrigin(0.5);
-      container.add(noData);
-      return;
-    }
-
+    const quests = questManager.getQuests();
     let yPos = -120;
     const spacing = 60;
 
-    quests.forEach((quest) => {
+    quests.forEach((quest, idx) => {
+      // --- Normalisation des données pour éviter les "undefined" ---
+
+      // Nom : on essaye plusieurs champs possibles
+      const displayName =
+        quest.name ||
+        quest.title ||
+        (quest.id ? i18n.t(`quests.${quest.id}.title`, quest.id) : null) ||
+        `Quête #${idx + 1}`;
+
+      // Objectif (goal)
+      const goal =
+        quest.goal ??
+        quest.target ??
+        quest.required ??
+        quest.max ??
+        1;
+
+      // Récompense en coins
+      const rewardCoins =
+        quest.reward ??
+        quest.rewardCoins ??
+        quest.coins ??
+        0;
+
+      // Progression actuelle via le manager
       const progress = questManager.getQuestProgress
         ? questManager.getQuestProgress(quest.id)
-        : (quest.progress || 0);
+        : (quest.progress ?? 0);
 
-      const isComplete = progress >= quest.goal;
+      const isComplete = progress >= goal;
+
+      // --- Affichage ---
 
       // Nom de la quête
-      const name = this.add.text(-150, yPos, quest.name, {
+      const name = this.add.text(-150, yPos, displayName, {
         fontFamily: 'monospace',
         fontSize: 14,
         color: isComplete ? '#17a689' : '#fff'
@@ -856,7 +866,7 @@ export class MenuScene extends Phaser.Scene {
       container.add(name);
 
       // Progression
-      const progressText = this.add.text(60, yPos, `${progress}/${quest.goal}`, {
+      const progressText = this.add.text(60, yPos, `${progress}/${goal}`, {
         fontFamily: 'monospace',
         fontSize: 12,
         color: isComplete ? '#17a689' : '#aaa'
@@ -864,7 +874,7 @@ export class MenuScene extends Phaser.Scene {
       container.add(progressText);
 
       // Récompense
-      const reward = this.add.text(120, yPos, `+${quest.reward} 🪙`, {
+      const reward = this.add.text(120, yPos, `+${rewardCoins} 🪙`, {
         fontFamily: 'monospace',
         fontSize: 12,
         color: '#ffd700'
@@ -872,11 +882,12 @@ export class MenuScene extends Phaser.Scene {
       container.add(reward);
 
       // Bouton Claim si complété
-      if (
+      const canClaim =
         isComplete &&
         questManager.isRewardClaimed &&
-        !questManager.isRewardClaimed(quest.id)
-      ) {
+        !questManager.isRewardClaimed(quest.id);
+
+      if (canClaim) {
         const claimBtn = this.add.text(0, yPos + 20, i18n.t('quests.claim'), {
           fontFamily: 'monospace',
           fontSize: 12,
@@ -887,15 +898,19 @@ export class MenuScene extends Phaser.Scene {
           .setOrigin(0.5)
           .setInteractive({ useHandCursor: true })
           .on('pointerdown', () => {
+            // Validation de la récompense
             if (questManager.claimReward) {
               questManager.claimReward(quest.id);
             }
-            if (coinManager.addCoins) {
-              coinManager.addCoins(quest.reward);
-            }
+            coinManager.addCoins(rewardCoins);
+
+            // Rafraîchir le popup
             this._showQuestsPopup();
+
+            // Mettre à jour les coins dans le menu
             this._updateCoinDisplay();
           });
+
         container.add(claimBtn);
       }
 
@@ -990,4 +1005,5 @@ export class MenuScene extends Phaser.Scene {
 }
 
 export default MenuScene;
+
 
