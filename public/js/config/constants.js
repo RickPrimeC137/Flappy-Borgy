@@ -14,10 +14,10 @@
 // ============================================================
 
 /** Largeur du canvas de jeu */
-export const GAME_W = 1024;
+export const GAME_W = 360;
 
 /** Hauteur du canvas de jeu */
-export const GAME_H = 1535;
+export const GAME_H = 640;
 
 // ============================================================
 // PROFIL PHYSIQUE DU JEU
@@ -262,5 +262,6 @@ export const STORAGE_KEYS = {
   LANG: LANG_STORAGE_KEY,
   HARD_MODE: HARD_MODE_KEY
 };
+
 
 
