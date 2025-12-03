@@ -1,19 +1,25 @@
 /**
  * SkinManager.js - Gestionnaire des skins du joueur
- * 
+ *
  * Ce module gère tout ce qui concerne les skins :
  * - Chargement et sauvegarde de l'état des skins
  * - Skin actif du joueur
  * - Skins débloqués
  * - Achat et équipement de skins
  * - Intégration avec CoinManager pour les achats
- * 
+ *
  * @module SkinManager
  */
 
 import storageManager from './StorageManager.js';
 import coinManager from './CoinManager.js';
-import { SKINS_DEF, XMAS_SKIN, getSkinById, getSkinByKey, getSkinPerk } from '../config/skinConfig.js';
+import {
+  SKINS_DEF,
+  XMAS_SKIN,
+  getSkinById,
+  getSkinByKey,
+  getSkinPerk
+} from '../config/skinConfig.js';
 import { PLAYER_SCALE } from '../config/constants.js';
 
 /**
@@ -51,12 +57,12 @@ class SkinManager {
    */
   _loadState() {
     const saved = storageManager.loadSkinState();
-    
+
     if (saved && Array.isArray(saved.skins) && saved.skins.length) {
       // Ajouter les nouveaux skins qui n'existent pas encore
-      const existingIds = new Set(saved.skins.map(s => s.id));
-      
-      SKINS_DEF.forEach(def => {
+      const existingIds = new Set(saved.skins.map((s) => s.id));
+
+      SKINS_DEF.forEach((def) => {
         if (!existingIds.has(def.id)) {
           saved.skins.push({
             id: def.id,
@@ -70,16 +76,19 @@ class SkinManager {
       });
 
       // Vérifier que le skin sélectionné est valide
-      if (!saved.selectedId || !saved.skins.some(s => s.id === saved.selectedId && s.owned)) {
-        const fallback = saved.skins.find(s => s.owned) || saved.skins[0];
+      if (
+        !saved.selectedId ||
+        !saved.skins.some((s) => s.id === saved.selectedId && s.owned)
+      ) {
+        const fallback = saved.skins.find((s) => s.owned) || saved.skins[0];
         if (fallback) {
           saved.selectedId = fallback.id;
         }
       }
 
       // Mettre à jour les flags selected
-      saved.skins.forEach(s => {
-        s.selected = (s.id === saved.selectedId);
+      saved.skins.forEach((s) => {
+        s.selected = s.id === saved.selectedId;
       });
 
       this._state = saved;
@@ -95,7 +104,7 @@ class SkinManager {
    * @private
    */
   _initDefaultState() {
-    const skins = SKINS_DEF.map(s => ({
+    const skins = SKINS_DEF.map((s) => ({
       id: s.id,
       key: s.key,
       name: s.name,
@@ -105,17 +114,17 @@ class SkinManager {
     }));
 
     const selectedId = SKINS_DEF[0].id;
-    const first = skins.find(s => s.id === selectedId);
+    const first = skins.find((s) => s.id === selectedId);
     if (first) {
       first.selected = true;
     }
 
-    this._state = { 
-      skins, 
+    this._state = {
+      skins,
       selectedId,
       coinsSpent: 0
     };
-    
+
     this._saveState();
   }
 
@@ -145,6 +154,14 @@ class SkinManager {
   }
 
   /**
+   * Alias de compatibilité avec d’anciens appels éventuels
+   * @returns {Object}
+   */
+  getSkinState() {
+    return this.getState();
+  }
+
+  /**
    * Retourne la liste de tous les skins
    * @returns {Array} Liste des skins avec leur état
    */
@@ -157,7 +174,7 @@ class SkinManager {
    * @returns {Array} Liste des skins possédés
    */
   getOwnedSkins() {
-    return this._state?.skins?.filter(s => s.owned) || [];
+    return this._state?.skins?.filter((s) => s.owned) || [];
   }
 
   /**
@@ -165,7 +182,7 @@ class SkinManager {
    * @returns {Array} Liste des skins à acheter
    */
   getUnownedSkins() {
-    return this._state?.skins?.filter(s => !s.owned) || [];
+    return this._state?.skins?.filter((s) => !s.owned) || [];
   }
 
   /**
@@ -177,21 +194,40 @@ class SkinManager {
   }
 
   /**
+   * Alias de compatibilité : certains fichiers peuvent appeler getSelectedSkinId()
+   */
+  getSelectedSkinId() {
+    return this.getSelectedId();
+  }
+
+  /**
    * Retourne la clé de texture du skin actuellement sélectionné
    * @returns {string} La clé de texture
    */
   getSelectedKey() {
     const selected = this._state?.skins?.find(
-      s => s.id === this._state.selectedId && s.owned
+      (s) => s.id === this._state.selectedId && s.owned
     );
 
     if (selected) {
+      // Dans les assets, le sprite de base est souvent "borgy_ingame"
       return selected.key === 'borgy' ? 'borgy_ingame' : selected.key;
     }
 
     // Fallback au skin par défaut
     const def = SKINS_DEF[0];
-    return def ? (def.key === 'borgy' ? 'borgy_ingame' : def.key) : 'borgy_ingame';
+    return def
+      ? def.key === 'borgy'
+        ? 'borgy_ingame'
+        : def.key
+      : 'borgy_ingame';
+  }
+
+  /**
+   * Alias de compatibilité : getSelectedSkinKey()
+   */
+  getSelectedSkinKey() {
+    return this.getSelectedKey();
   }
 
   /**
@@ -199,7 +235,9 @@ class SkinManager {
    * @returns {Object|null} Le skin sélectionné
    */
   getSelectedSkin() {
-    return this._state?.skins?.find(s => s.id === this._state.selectedId) || null;
+    return (
+      this._state?.skins?.find((s) => s.id === this._state.selectedId) || null
+    );
   }
 
   /**
@@ -208,8 +246,18 @@ class SkinManager {
    * @returns {boolean} true si possédé
    */
   isOwned(skinId) {
-    const skin = this._state?.skins?.find(s => s.id === skinId);
+    const skin = this._state?.skins?.find((s) => s.id === skinId);
     return skin?.owned || false;
+  }
+
+  /**
+   * ✔️ Méthode de compatibilité avec l’ancien code :
+   * ancien nom : isSkinOwned(...)
+   * @param {string} skinId
+   * @returns {boolean}
+   */
+  isSkinOwned(skinId) {
+    return this.isOwned(skinId);
   }
 
   /**
@@ -235,8 +283,8 @@ class SkinManager {
       this._loadState();
     }
 
-    const skin = this._state.skins.find(s => s.id === skinId);
-    
+    const skin = this._state.skins.find((s) => s.id === skinId);
+
     if (!skin) {
       return { success: false, reason: 'skin_not_found' };
     }
@@ -247,8 +295,8 @@ class SkinManager {
 
     // Mettre à jour la sélection
     this._state.selectedId = skinId;
-    this._state.skins.forEach(s => {
-      s.selected = (s.id === skinId);
+    this._state.skins.forEach((s) => {
+      s.selected = s.id === skinId;
     });
 
     this._saveState();
@@ -270,21 +318,21 @@ class SkinManager {
       this._loadState();
     }
 
-    const skin = this._state.skins.find(s => s.id === skinId);
-    
+    const skin = this._state.skins.find((s) => s.id === skinId);
+
     if (!skin) {
-      return { 
-        ok: false, 
-        reason: 'unknown_skin', 
-        coinsLeft: coinManager.getBalance() 
+      return {
+        ok: false,
+        reason: 'unknown_skin',
+        coinsLeft: coinManager.getBalance()
       };
     }
 
     if (skin.owned) {
-      return { 
-        ok: true, 
-        reason: 'already_owned', 
-        coinsLeft: coinManager.getBalance() 
+      return {
+        ok: true,
+        reason: 'already_owned',
+        coinsLeft: coinManager.getBalance()
       };
     }
 
@@ -292,22 +340,23 @@ class SkinManager {
     const result = coinManager.purchase(skin.price, skinId);
 
     if (!result.success) {
-      return { 
-        ok: false, 
-        reason: 'not_enough_coins', 
-        coinsLeft: result.newBalance 
+      return {
+        ok: false,
+        reason: 'not_enough_coins',
+        coinsLeft: result.newBalance
       };
     }
 
     // Achat réussi : débloquer le skin
     skin.owned = true;
-    this._state.coinsSpent = (this._state.coinsSpent || 0) + skin.price;
+    this._state.coinsSpent =
+      (this._state.coinsSpent || 0) + skin.price;
     this._saveState();
 
-    return { 
-      ok: true, 
-      reason: 'purchased', 
-      coinsLeft: result.newBalance 
+    return {
+      ok: true,
+      reason: 'purchased',
+      coinsLeft: result.newBalance
     };
   }
 
@@ -318,7 +367,7 @@ class SkinManager {
    */
   buyAndSelect(skinId) {
     const buyResult = this.tryBuySkin(skinId);
-    
+
     if (buyResult.ok) {
       this.selectSkin(skinId);
     }
@@ -411,14 +460,14 @@ class SkinManager {
     try {
       const baseTex = textures.get(baseKey);
       const curTex = textures.get(skinKey);
-      
+
       if (!baseTex || !curTex) {
         return PLAYER_SCALE;
       }
 
       const baseImg = baseTex.getSourceImage();
       const curImg = curTex.getSourceImage();
-      
+
       if (!baseImg || !curImg) {
         return PLAYER_SCALE;
       }
@@ -428,19 +477,24 @@ class SkinManager {
 
       let ratio;
       if (baseBounds && curBounds) {
-        ratio = (baseBounds.h || baseImg.height) / (curBounds.h || curImg.height);
+        ratio =
+          (baseBounds.h || baseImg.height) /
+          (curBounds.h || curImg.height);
       } else {
         ratio = baseImg.height / curImg.height;
       }
 
       let scale = PLAYER_SCALE * ratio;
-      
+
       if (!Number.isFinite(scale)) {
         scale = PLAYER_SCALE;
       }
 
       // Clamp le scale entre 60% et 180% du scale de base
-      scale = Math.max(PLAYER_SCALE * 0.6, Math.min(PLAYER_SCALE * 1.8, scale));
+      scale = Math.max(
+        PLAYER_SCALE * 0.6,
+        Math.min(PLAYER_SCALE * 1.8, scale)
+      );
 
       return scale;
     } catch (e) {
@@ -459,18 +513,23 @@ class SkinManager {
     try {
       const w = img.width | 0;
       const h = img.height | 0;
-      
+
       if (!w || !h) return null;
 
       const canvas = document.createElement('canvas');
       canvas.width = w;
       canvas.height = h;
-      
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+      const ctx = canvas.getContext('2d', {
+        willReadFrequently: true
+      });
       ctx.drawImage(img, 0, 0);
 
       const data = ctx.getImageData(0, 0, w, h).data;
-      let minX = w, minY = h, maxX = -1, maxY = -1;
+      let minX = w;
+      let minY = h;
+      let maxX = -1;
+      let maxY = -1;
       const threshold = 10; // alpha > 10 = pixel visible
 
       for (let y = 0; y < h; y++) {
@@ -487,12 +546,12 @@ class SkinManager {
       }
 
       if (maxX < minX || maxY < minY) return null;
-      
-      return { 
-        x: minX, 
-        y: minY, 
-        w: maxX - minX + 1, 
-        h: maxY - minY + 1 
+
+      return {
+        x: minX,
+        y: minY,
+        w: maxX - minX + 1,
+        h: maxY - minY + 1
       };
     } catch (e) {
       console.warn('[SkinManager] getVisibleBounds error:', e);
@@ -532,9 +591,11 @@ class SkinManager {
    * @returns {Object|null} Les informations du skin
    */
   getSkinInfo(skinId) {
-    const skinState = this._state?.skins?.find(s => s.id === skinId);
+    const skinState = this._state?.skins?.find(
+      (s) => s.id === skinId
+    );
     const skinDef = getSkinById(skinId);
-    
+
     if (!skinDef) return null;
 
     return {
