@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Changement de Langue - Flappy Borgy</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            color: #ffffff;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .lang-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .lang-btn {
+            padding: 12px 24px;
+            border: 2px solid #17a689;
+            background: transparent;
+            color: #17a689;
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        
+        .lang-btn:hover, .lang-btn.active {
+            background: #17a689;
+            color: #1a1a2e;
+            transform: translateY(-2px);
+        }
+        
+        .test-panel {
+            background: rgba(22, 33, 62, 0.8);
+            border: 2px solid #17a689;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        
+        .test-content {
+            background: rgba(26, 26, 46, 0.95);
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        
+        .tutorial-title {
+            color: #17a689;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .tutorial-content {
+            color: #ffffff;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+        
+        .tutorial-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #444;
+        }
+        
+        .nav-btn {
+            padding: 8px 16px;
+            border: 1px solid #888;
+            background: transparent;
+            color: #888;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-btn:hover {
+            color: #ffffff;
+            border-color: #ffffff;
+        }
+        
+        .start-btn {
+            background: #17a689;
+            color: #1a1a2e;
+            border-color: #17a689;
+            padding: 10px 20px;
+            font-weight: bold;
+        }
+        
+        .step-indicator {
+            color: #888;
+            font-size: 14px;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #17a689;
+            color: #1a1a2e;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .skip-btn {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            color: #666;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .skip-btn:hover {
+            color: #ff6b6b;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎮 Test Changement de Langue - Tutoriel WelcomePopup</h1>
+        <p>Testez le changement de langue en temps réel pendant le tutoriel</p>
+    </div>
+    
+    <div class="lang-buttons">
+        <button class="lang-btn active" data-lang="fr">🇫🇷 Français</button>
+        <button class="lang-btn" data-lang="en">🇺🇸 English</button>
+    </div>
+    
+    <div class="test-panel">
+        <h3>📋 État du Test</h3>
+        <div id="test-status" class="test-content">
+            <p>✅ Système d'événements i18n initialisé</p>
+            <p>✅ WelcomePopup configuré avec écouteur de langue</p>
+            <p>⏳ En attente d'un changement de langue...</p>
+        </div>
+        
+        <h3>🎯 Tutoriel Simulé</h3>
+        <div class="test-content" style="position: relative;">
+            <button class="skip-btn" onclick="skipTutorial()">Passer ✕</button>
+            
+            <div id="step-1" class="tutorial-step">
+                <div class="tutorial-title" id="title-step-1"></div>
+                <div class="tutorial-content" id="content-step-1"></div>
+                <div class="tutorial-nav">
+                    <span class="step-indicator" id="indicator-step-1">1/4</span>
+                    <button class="nav-btn" id="prev-step-1" style="opacity: 0.3;">← Précédent</button>
+                    <button class="nav-btn start-btn" id="next-step-1">Suivant →</button>
+                </div>
+            </div>
+            
+            <div id="step-2" class="tutorial-step" style="display: none;">
+                <div class="tutorial-title" id="title-step-2"></div>
+                <div class="tutorial-content" id="content-step-2"></div>
+                <div class="tutorial-nav">
+                    <span class="step-indicator" id="indicator-step-2">2/4</span>
+                    <button class="nav-btn" id="prev-step-2">← Précédent</button>
+                    <button class="nav-btn start-btn" id="next-step-2">Suivant →</button>
+                </div>
+            </div>
+            
+            <div id="step-3" class="tutorial-step" style="display: none;">
+                <div class="tutorial-title" id="title-step-3"></div>
+                <div class="tutorial-content" id="content-step-3"></div>
+                <div class="tutorial-nav">
+                    <span class="step-indicator" id="indicator-step-3">3/4</span>
+                    <button class="nav-btn" id="prev-step-3">← Précédent</button>
+                    <button class="nav-btn start-btn" id="next-step-3">Suivant →</button>
+                </div>
+            </div>
+            
+            <div id="step-4" class="tutorial-step" style="display: none;">
+                <div class="tutorial-title" id="title-step-4"></div>
+                <div class="tutorial-content" id="content-step-4"></div>
+                <div class="tutorial-nav">
+                    <span class="step-indicator" id="indicator-step-4">4/4</span>
+                    <button class="nav-btn" id="prev-step-4">← Précédent</button>
+                    <button class="nav-btn start-btn" id="next-step-4">🚀 C'est parti !</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="notification" class="notification"></div>
+    
+    <script type="module">
+        // Simulation du système i18n modifié
+        class MockI18nManager {
+            constructor() {
+                this.currentLang = 'fr';
+                this.eventTarget = new EventTarget();
+                this.translations = {
+                    fr: {
+                        TUTORIAL_STEP1_TITLE: "Bienvenue dans Flappy Borgy !",
+                        TUTORIAL_STEP1_CONTENT: "Aide Borgy à voler entre les obstacles pour marquer des points.\\n\\nTap sur l'écran ou appuie sur ESPACE pour faire voler Borgy.",
+                        TUTORIAL_STEP2_TITLE: "Évite les obstacles",
+                        TUTORIAL_STEP2_CONTENT: "Passe entre les tuyaux verts pour marquer des points.\\n\\n⚠️ Attention aux nuages en haut et en bas !\\n⚠️ Les robots verts sont dangereux !",
+                        TUTORIAL_STEP3_TITLE: "Collecte des bonus",
+                        TUTORIAL_STEP3_CONTENT: "🪙 Borgy Coins : Collecte-les pour acheter des skins\\n\\n✨ Bonus SwissBorg : Score x2 pendant 5 secondes\\n\\n🛡️ Certains skins ont des pouvoirs spéciaux !",
+                        TUTORIAL_STEP4_TITLE: "Quêtes & Classement",
+                        TUTORIAL_STEP4_CONTENT: "📜 Complète des quêtes quotidiennes pour gagner des coins\\n\\n🏆 Grimpe dans le classement mondial\\n\\n🔥 Mode Hard = Récompenses x2 !",
+                        TUTORIAL_NEXT: "Suivant →",
+                        TUTORIAL_PREV: "← Précédent",
+                        TUTORIAL_START: "🚀 C'est parti !",
+                        TUTORIAL_SKIP: "Passer ✕"
+                    },
+                    en: {
+                        TUTORIAL_STEP1_TITLE: "Welcome to Flappy Borgy!",
+                        TUTORIAL_STEP1_CONTENT: "Help Borgy fly between obstacles to score points.\\n\\nTap the screen or press SPACE to make Borgy fly.",
+                        TUTORIAL_STEP2_TITLE: "Avoid obstacles",
+                        TUTORIAL_STEP2_CONTENT: "Pass between green pipes to score points.\\n\\n⚠️ Watch out for clouds at top and bottom!\\n⚠️ Green robots are dangerous!",
+                        TUTORIAL_STEP3_TITLE: "Collect bonuses",
+                        TUTORIAL_STEP3_CONTENT: "🪙 Borgy Coins: Collect them to buy skins\\n\\n✨ SwissBorg Bonus: Score x2 for 5 seconds\\n\\n🛡️ Some skins have special powers!",
+                        TUTORIAL_STEP4_TITLE: "Quests & Leaderboard",
+                        TUTORIAL_STEP4_CONTENT: "📜 Complete daily quests to earn coins\\n\\n🏆 Climb the global leaderboard\\n\\n🔥 Hard Mode = x2 Rewards!",
+                        TUTORIAL_NEXT: "Next →",
+                        TUTORIAL_PREV: "← Previous",
+                        TUTORIAL_START: "🚀 Let's go!",
+                        TUTORIAL_SKIP: "Skip ✕"
+                    }
+                };
+            }
+            
+            t(key) {
+                return this.translations[this.currentLang][key] || key;
+            }
+            
+            setLang(lang) {
+                if (this.translations[lang]) {
+                    const oldLang = this.currentLang;
+                    this.currentLang = lang;
+                    
+                    // Émettre événement
+                    this.eventTarget.dispatchEvent(new CustomEvent('languageChanged', {
+                        detail: { newLang: lang, oldLang: oldLang }
+                    }));
+                    
+                    return true;
+                }
+                return false;
+            }
+            
+            getEventTarget() {
+                return this.eventTarget;
+            }
+        }
+        
+        // Simulation du WelcomePopup avec écouteur de langue
+        class MockWelcomePopup {
+            constructor(i18n) {
+                this.i18n = i18n;
+                this.currentStep = 0;
+                this.languageChangeListener = null;
+                this.isListening = false;
+            }
+            
+            start() {
+                this.updateTutorialContent();
+                this.addLanguageChangeListener();
+                this.isListening = true;
+            }
+            
+            addLanguageChangeListener() {
+                if (this.languageChangeListener) return;
+                
+                this.languageChangeListener = (event) => {
+                    console.log('🔄 Changement de langue détecté:', event.detail);
+                    this.updateTutorialContent();
+                    this.showNotification('Langue changée en temps réel !');
+                };
+                
+                this.i18n.getEventTarget().addEventListener('languageChanged', this.languageChangeListener);
+            }
+            
+            updateTutorialContent() {
+                // Mettre à jour tous les textes
+                for (let i = 1; i <= 4; i++) {
+                    const titleEl = document.getElementById(`title-step-${i}`);
+                    const contentEl = document.getElementById(`content-step-${i}`);
+                    const indicatorEl = document.getElementById(`indicator-step-${i}`);
+                    
+                    if (titleEl) titleEl.textContent = this.i18n.t(`TUTORIAL_STEP${i}_TITLE`);
+                    if (contentEl) contentEl.textContent = this.i18n.t(`TUTORIAL_STEP${i}_CONTENT`);
+                    if (indicatorEl) indicatorEl.textContent = `${i}/4`;
+                }
+                
+                // Mettre à jour les boutons de navigation
+                this.updateNavigationButtons();
+            }
+            
+            updateNavigationButtons() {
+                for (let i = 1; i <= 4; i++) {
+                    const prevBtn = document.getElementById(`prev-step-${i}`);
+                    const nextBtn = document.getElementById(`next-step-${i}`);
+                    
+                    if (prevBtn) prevBtn.textContent = this.i18n.t('TUTORIAL_PREV');
+                    if (nextBtn) {
+                        if (i === 4) {
+                            nextBtn.textContent = this.i18n.t('TUTORIAL_START');
+                        } else {
+                            nextBtn.textContent = this.i18n.t('TUTORIAL_NEXT');
+                        }
+                    }
+                }
+            }
+            
+            showNotification(message) {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.classList.add('show');
+                
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 2000);
+            }
+            
+            destroy() {
+                if (this.languageChangeListener) {
+                    this.i18n.getEventTarget().removeEventListener('languageChanged', this.languageChangeListener);
+                    this.languageChangeListener = null;
+                }
+                this.isListening = false;
+            }
+        }
+        
+        // Initialisation
+        const i18n = new MockI18nManager();
+        const welcomePopup = new MockWelcomePopup(i18n);
+        
+        // Démarrer la simulation
+        welcomePopup.start();
+        
+        // Gestion des boutons de langue
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const lang = btn.dataset.lang;
+                
+                // Mettre à jour l'état des boutons
+                document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Changer la langue
+                i18n.setLang(lang);
+            });
+        });
+        
+        // Navigation entre les étapes (simulation)
+        let currentStep = 1;
+        function showStep(step) {
+            document.querySelectorAll('.tutorial-step').forEach(el => el.style.display = 'none');
+            document.getElementById(`step-${step}`).style.display = 'block';
+            currentStep = step;
+        }
+        
+        // Boutons de navigation
+        for (let i = 1; i <= 4; i++) {
+            document.getElementById(`prev-step-${i}`).addEventListener('click', () => {
+                if (currentStep > 1) showStep(currentStep - 1);
+            });
+            
+            document.getElementById(`next-step-${i}`).addEventListener('click', () => {
+                if (currentStep < 4) {
+                    showStep(currentStep + 1);
+                } else {
+                    welcomePopup.showNotification('Tutoriel terminé !');
+                }
+            });
+        }
+        
+        // Exposer les fonctions globales
+        window.skipTutorial = function() {
+            welcomePopup.showNotification('Tutoriel terminé !');
+        };
+        
+        console.log('🎮 Test de changement de langue en temps réel initialisé');
+    </script>
+</body>
+</html>
