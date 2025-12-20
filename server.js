@@ -1,5 +1,5 @@
 // server.js — FlappyBorgy Leaderboard (Express + Telegram WebApp + Supabase)
-// package.json doit contenir: { "type": "module" }
+// ES Modules (package.json: "type": "module")
 
 import express from "express";
 import cors from "cors";
@@ -8,25 +8,24 @@ import { createClient } from "@supabase/supabase-js";
 
 /* ---------- ENV ---------- */
 const PORT = process.env.PORT || 8080;
-const BOT_TOKEN = process.env.BOT_TOKEN; // token BotFather
-const SUPABASE_URL = process.env.SUPABASE_URL; // https://xxxx.supabase.co
-const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE; // clé service_role
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE;
 
 if (!BOT_TOKEN) throw new Error("BOT_TOKEN manquant");
 if (!SUPABASE_URL) throw new Error("SUPABASE_URL manquant");
 if (!SUPABASE_SERVICE_ROLE) throw new Error("SUPABASE_SERVICE_ROLE manquant");
 
-/* ---------- Supabase (serveur) ---------- */
+/* ---------- Supabase ---------- */
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-/* ---------- App, Anti-cache & CORS ---------- */
+/* ---------- App & CORS ---------- */
 const app = express();
 app.set("trust proxy", 1);
-
-// Anti-cache (évite les 304 / réponses vides sur certains fetch)
 app.set("etag", false);
+
 app.use((req, res, next) => {
   res.set("Cache-Control", "no-store, no-cache, must-revalidate");
   res.set("Pragma", "no-cache");
@@ -34,22 +33,20 @@ app.use((req, res, next) => {
   next();
 });
 
-// Autorise localhost + tes sous-domaines Render (front & api)
 const ALLOWED_ORIGINS_RE = [
   /^https?:\/\/localhost(?::\d+)?$/i,
-  /^https:\/\/flappyborgy.*\.onrender\.com$/i, // front
-  /^https:\/\/rickprimec137-flappyborgyv15\.onrender\.com$/i, // api
+  /^https:\/\/flappyborgy.*\.onrender\.com$/i,
+  /^https:\/\/rickprimec137-flappyborgyv15\.onrender\.com$/i,
 ];
 
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin) return cb(null, true); // curl/Postman
+      if (!origin) return cb(null, true);
       const ok = ALLOWED_ORIGINS_RE.some((re) => re.test(origin));
       return cb(ok ? null : new Error("CORS not allowed"), ok);
     },
     methods: ["GET", "POST", "OPTIONS"],
-    // ⚠️ Ne pas fixer allowedHeaders: laisser cors gérer automatiquement
     credentials: false,
   })
 );
@@ -58,7 +55,6 @@ app.options("*", cors());
 app.use(express.json({ limit: "512kb" }));
 
 /* ---------- Helpers ---------- */
-// Vérification officielle Telegram WebApp
 function verifyInitData(initDataRaw, botToken) {
   if (!initDataRaw) return null;
 
@@ -77,7 +73,7 @@ function verifyInitData(initDataRaw, botToken) {
 
   try {
     const obj = Object.fromEntries(new URLSearchParams(initDataRaw).entries());
-    return JSON.parse(obj.user || "{}"); // "user" est du JSON dans initData
+    return JSON.parse(obj.user || "{}");
   } catch {
     return null;
   }
@@ -92,41 +88,37 @@ function normMode(m) {
   return typeof m === "string" && m.toLowerCase() === "hard" ? "hard" : "normal";
 }
 
-// Compat front: scope=all|week|month OU period=global|week|month
+// Compat: scope=all|week|month OU period=global|week|month
 function parsePeriod(q) {
   const scopeRaw = typeof q.scope === "string" ? q.scope : null;
   const periodRaw = typeof q.period === "string" ? q.period : null;
 
   if (periodRaw && ["global", "week", "month"].includes(periodRaw)) return periodRaw;
-  if (scopeRaw && ["all", "week", "month"].includes(scopeRaw)) {
-    return scopeRaw === "all" ? "global" : scopeRaw;
-  }
+  if (scopeRaw && ["all", "week", "month"].includes(scopeRaw)) return scopeRaw === "all" ? "global" : scopeRaw;
   return "global";
 }
 
 function periodFromDateISO(period) {
   const now = new Date();
   const d = new Date(now);
-  if (period === "week") d.setUTCDate(d.getUTCDate() - 7); // 7 derniers jours
-  if (period === "month") d.setUTCMonth(d.getUTCMonth() - 1); // 1 mois glissant
+  if (period === "week") d.setUTCDate(d.getUTCDate() - 7);
+  if (period === "month") d.setUTCMonth(d.getUTCMonth() - 1);
   return d.toISOString();
 }
 
 /* ---------- Routes ---------- */
-
-// Health & root
 app.get("/", (_req, res) => res.json({ ok: true, service: "flappyborgy-leaderboard" }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
-// POST /api/score  { score:number, initData:string, mode?: "hard"|"normal" }
+// POST /api/score { score:number, initData:string, mode?: "hard"|"normal" }
 app.post("/api/score", async (req, res) => {
   try {
     const { score, initData, mode: modeRaw } = req.body || {};
     if (typeof score !== "number" || !Number.isFinite(score) || score < 0) {
       return res.status(400).json({ ok: false, error: "score invalide" });
     }
-    const mode = normMode(modeRaw);
 
+    const mode = normMode(modeRaw);
     const user = verifyInitData(initData, BOT_TOKEN);
     if (!user || !user.id) {
       return res.status(401).json({ ok: false, error: "initData invalide" });
@@ -137,15 +129,15 @@ app.post("/api/score", async (req, res) => {
       (user.username && "@" + user.username) ||
       sanitizeName([user.first_name, user.last_name].filter(Boolean).join(" ")) ||
       "Player";
+
     const val = Math.floor(score);
 
-    // ✅ Nouveau: enregistrer TOUJOURS un run (historique) pour leaderboards week/month
+    // ✅ Historique: enregistre TOUJOURS le run
     {
       const { error: runErr } = await supabase.from("score_runs").insert({
         user_id: uid,
-        mode, // enum public.game_mode ('normal'|'hard')
+        mode,
         score: val,
-        // created_at default now()
       });
       if (runErr) {
         console.error("[DB] score_runs insert error", runErr);
@@ -153,7 +145,7 @@ app.post("/api/score", async (req, res) => {
       }
     }
 
-    // Conserve le all-time best dans "scores"
+    // All-time best
     const { data: row, error: selErr } = await supabase
       .from("scores")
       .select("best")
@@ -191,7 +183,6 @@ app.post("/api/score", async (req, res) => {
       }
       console.log(`[SCORE][UPD] uid=${uid} mode=${mode} best=${val}`);
     } else {
-      // rafraîchir name/updated_at (optionnel)
       const { error: updNameErr } = await supabase
         .from("scores")
         .update({ name, updated_at: new Date().toISOString() })
@@ -211,10 +202,8 @@ app.post("/api/score", async (req, res) => {
 
 /**
  * GET /api/leaderboard
- * ?limit=10
- * ?page=1
- * ?mode=hard|normal
- * ?period=global|week|month        (ou ?scope=all|week|month)
+ * ?limit=10&page=1&mode=hard|normal
+ * ?period=global|week|month  (ou scope=all|week|month)
  */
 app.get("/api/leaderboard", async (req, res) => {
   try {
@@ -227,14 +216,16 @@ app.get("/api/leaderboard", async (req, res) => {
     const mode = normMode(req.query.mode);
     const period = parsePeriod(req.query);
 
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
+    const offset = (page - 1) * limit;
 
-    // GLOBAL: all-time best depuis "scores"
+    // GLOBAL = all-time best depuis "scores"
     if (period === "global") {
+      const from = offset;
+      const to = from + limit - 1;
+
       const { data, error } = await supabase
         .from("scores")
-        .select("user_id,name,best,updated_at,mode", { head: false })
+        .select("user_id,name,best,updated_at,mode")
         .eq("mode", mode)
         .order("best", { ascending: false })
         .order("updated_at", { ascending: true })
@@ -244,22 +235,18 @@ app.get("/api/leaderboard", async (req, res) => {
         console.error("[DB] leaderboard global error", error);
         return res.status(500).json({ ok: false, error: "db" });
       }
-
       return res.json({ ok: true, list: data || [] });
     }
 
-    // WEEK/MONTH: meilleur score réalisé dans la fenêtre, basé sur "score_runs"
+    // WEEK/MONTH = meilleur score réalisé dans la fenêtre (RPC SQL)
     const fromDate = periodFromDateISO(period);
 
-    // 1) Aggregation runs -> max(score) par user_id dans la période
-    const { data: agg, error: aggErr } = await supabase
-      .from("score_runs")
-      .select("user_id, max_score:score.max(), last_run:created_at.max()", { head: false })
-      .eq("mode", mode)
-      .gte("created_at", fromDate)
-      .order("max_score", { ascending: false })
-      .order("last_run", { ascending: false })
-      .range(from, to);
+    const { data: agg, error: aggErr } = await supabase.rpc("leaderboard_runs", {
+      p_mode: mode,
+      p_from: fromDate,
+      p_limit: limit,
+      p_offset: offset,
+    });
 
     if (aggErr) {
       console.error("[DB] leaderboard runs error", aggErr);
@@ -268,7 +255,7 @@ app.get("/api/leaderboard", async (req, res) => {
 
     const ids = (agg || []).map((r) => r.user_id);
 
-    // 2) Récupère noms depuis "scores" (nom courant)
+    // noms depuis "scores" (nom courant)
     let nameById = {};
     if (ids.length) {
       const { data: names, error: namesErr } = await supabase
@@ -284,7 +271,6 @@ app.get("/api/leaderboard", async (req, res) => {
       }
     }
 
-    // 3) Formate comme avant (best = max_score sur la période)
     const list = (agg || []).map((r) => ({
       user_id: r.user_id,
       name: nameById[r.user_id] || "Player",
@@ -304,9 +290,8 @@ app.get("/api/leaderboard", async (req, res) => {
 app.get("/api/me", async (req, res) => {
   try {
     const user = verifyInitData(req.query.initData, BOT_TOKEN);
-    if (!user || !user.id) {
-      return res.status(401).json({ ok: false, error: "initData invalide" });
-    }
+    if (!user || !user.id) return res.status(401).json({ ok: false, error: "initData invalide" });
+
     const uid = String(user.id);
     const mode = normMode(req.query.mode);
 
