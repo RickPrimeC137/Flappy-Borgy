@@ -8,8 +8,8 @@ import { createClient } from "@supabase/supabase-js";
 
 /* ---------- ENV ---------- */
 const PORT = process.env.PORT || 8080;
-const BOT_TOKEN = process.env.BOT_TOKEN;                         // token BotFather
-const SUPABASE_URL = process.env.SUPABASE_URL;                   // https://xxxx.supabase.co
+const BOT_TOKEN = process.env.BOT_TOKEN; // token BotFather
+const SUPABASE_URL = process.env.SUPABASE_URL; // https://xxxx.supabase.co
 const SUPABASE_SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE; // clé service_role
 
 if (!BOT_TOKEN) throw new Error("BOT_TOKEN manquant");
@@ -37,8 +37,8 @@ app.use((req, res, next) => {
 // Autorise localhost + tes sous-domaines Render (front & api)
 const ALLOWED_ORIGINS_RE = [
   /^https?:\/\/localhost(?::\d+)?$/i,
-  /^https:\/\/flappyborgy.*\.onrender\.com$/i,                 // front
-  /^https:\/\/rickprimec137-flappyborgyv15\.onrender\.com$/i,  // api
+  /^https:\/\/flappyborgy.*\.onrender\.com$/i, // front
+  /^https:\/\/rickprimec137-flappyborgyv15\.onrender\.com$/i, // api
 ];
 
 app.use(
@@ -71,14 +71,8 @@ function verifyInitData(initDataRaw, botToken) {
     .sort()
     .join("\n");
 
-  const secretKey = crypto
-    .createHmac("sha256", "WebAppData")
-    .update(botToken)
-    .digest();
-  const hmac = crypto
-    .createHmac("sha256", secretKey)
-    .update(dataCheck)
-    .digest("hex");
+  const secretKey = crypto.createHmac("sha256", "WebAppData").update(botToken).digest();
+  const hmac = crypto.createHmac("sha256", secretKey).update(dataCheck).digest("hex");
   if (hmac !== hash) return null;
 
   try {
@@ -98,12 +92,28 @@ function normMode(m) {
   return typeof m === "string" && m.toLowerCase() === "hard" ? "hard" : "normal";
 }
 
+// Compat front: scope=all|week|month OU period=global|week|month
+function parsePeriod(q) {
+  const scopeRaw = typeof q.scope === "string" ? q.scope : null;
+  const periodRaw = typeof q.period === "string" ? q.period : null;
+
+  if (periodRaw && ["global", "week", "month"].includes(periodRaw)) return periodRaw;
+  if (scopeRaw && ["all", "week", "month"].includes(scopeRaw)) return scopeRaw === "all" ? "global" : scopeRaw;
+  return "global";
+}
+
+function periodFromDateISO(period) {
+  const now = new Date();
+  const d = new Date(now);
+  if (period === "week") d.setUTCDate(d.getUTCDate() - 7);      // 7 derniers jours
+  if (period === "month") d.setUTCMonth(d.getUTCMonth() - 1);   // 1 mois glissant
+  return d.toISOString();
+}
+
 /* ---------- Routes ---------- */
 
 // Health & root
-app.get("/", (_req, res) =>
-  res.json({ ok: true, service: "flappyborgy-leaderboard" })
-);
+app.get("/", (_req, res) => res.json({ ok: true, service: "flappyborgy-leaderboard" }));
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
 // POST /api/score  { score:number, initData:string, mode?: "hard"|"normal" }
@@ -127,7 +137,21 @@ app.post("/api/score", async (req, res) => {
       "Player";
     const val = Math.floor(score);
 
-    // Lecture (PK composite user_id + mode)
+    // ✅ Nouveau: enregistrer TOUJOURS un run (historique) pour leaderboards week/month
+    {
+      const { error: runErr } = await supabase.from("score_runs").insert({
+        user_id: uid,
+        mode,      // enum public.game_mode ('normal'|'hard')
+        score: val,
+        // created_at default now()
+      });
+      if (runErr) {
+        console.error("[DB] score_runs insert error", runErr);
+        return res.status(500).json({ ok: false, error: "db insert run" });
+      }
+    }
+
+    // Conserve le all-time best dans "scores"
     const { data: row, error: selErr } = await supabase
       .from("scores")
       .select("best")
@@ -145,7 +169,7 @@ app.post("/api/score", async (req, res) => {
         user_id: uid,
         name,
         best: val,
-        mode, // enum public.game_mode ('normal'|'hard')
+        mode,
         // updated_at = default now()
       });
       if (insErr) {
@@ -159,6 +183,7 @@ app.post("/api/score", async (req, res) => {
         .update({ best: val, name, updated_at: new Date().toISOString() })
         .eq("user_id", uid)
         .eq("mode", mode);
+
       if (updErr) {
         console.error("[DB] update error", updErr);
         return res.status(500).json({ ok: false, error: "db update" });
@@ -171,6 +196,7 @@ app.post("/api/score", async (req, res) => {
         .update({ name, updated_at: new Date().toISOString() })
         .eq("user_id", uid)
         .eq("mode", mode);
+
       if (updNameErr) console.warn("[DB] update name warn", updNameErr);
       console.log(`[SCORE][KEEP] uid=${uid} mode=${mode} best stays`);
     }
@@ -187,7 +213,7 @@ app.post("/api/score", async (req, res) => {
  * ?limit=10
  * ?page=1
  * ?mode=hard|normal
- * ?period=global|week|month
+ * ?period=global|week|month        (ou ?scope=all|week|month)
  */
 app.get("/api/leaderboard", async (req, res) => {
   try {
@@ -198,54 +224,78 @@ app.get("/api/leaderboard", async (req, res) => {
     const page = Math.max(1, pageRaw);
 
     const mode = normMode(req.query.mode);
-
-    const periodRaw =
-      typeof req.query.period === "string" ? req.query.period : "global";
-    const periodValues = ["global", "week", "month"];
-    const period = periodValues.includes(periodRaw) ? periodRaw : "global";
+    const period = parsePeriod(req.query);
 
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    let query = supabase
-      .from("scores")
-      .select("user_id,name,best,updated_at,mode", { head: false })
-      .eq("mode", mode);
+    // GLOBAL: all-time best depuis "scores" (inchangé)
+    if (period === "global") {
+      const { data, error } = await supabase
+        .from("scores")
+        .select("user_id,name,best,updated_at,mode", { head: false })
+        .eq("mode", mode)
+        .order("best", { ascending: false })
+        .order("updated_at", { ascending: true })
+        .range(from, to);
 
-    // Filtre temporel pour semaine / mois (sur updated_at)
-    if (period !== "global") {
-      const now = new Date();
-      let fromDate;
-
-      if (period === "week") {
-        const d = new Date(now);
-        d.setUTCDate(d.getUTCDate() - 7);
-        fromDate = d.toISOString();
-      } else if (period === "month") {
-        const d = new Date(now);
-        d.setUTCMonth(d.getUTCMonth() - 1);
-        fromDate = d.toISOString();
+      if (error) {
+        console.error("[DB] leaderboard global error", error);
+        return res.status(500).json({ ok: false, error: "db" });
       }
 
-      if (fromDate) {
-        query = query.gte("updated_at", fromDate);
-      }
+      return res.json({ ok: true, list: data || [] });
     }
 
-    const { data, error } = await query
-      .order("best", { ascending: false })
-      .order("updated_at", { ascending: true })
+    // WEEK/MONTH: meilleur score réalisé dans la fenêtre, basé sur "score_runs"
+    const fromDate = periodFromDateISO(period);
+
+    // 1) Aggregation runs -> max(score) par user_id dans la période
+    const { data: agg, error: aggErr } = await supabase
+      .from("score_runs")
+      .select("user_id, max_score:score.max(), last_run:created_at.max()", { head: false })
+      .eq("mode", mode)
+      .gte("created_at", fromDate)
+      .order("max_score", { ascending: false })
+      .order("last_run", { ascending: false })
       .range(from, to);
 
-    if (error) {
-      console.error("[DB] leaderboard error", error);
+    if (aggErr) {
+      console.error("[DB] leaderboard runs error", aggErr);
       return res.status(500).json({ ok: false, error: "db" });
     }
 
-    res.json({ ok: true, list: data || [] });
+    const ids = (agg || []).map((r) => r.user_id);
+
+    // 2) Récupère noms depuis "scores" (nom courant)
+    let nameById = {};
+    if (ids.length) {
+      const { data: names, error: namesErr } = await supabase
+        .from("scores")
+        .select("user_id,name")
+        .eq("mode", mode)
+        .in("user_id", ids);
+
+      if (namesErr) {
+        console.warn("[DB] leaderboard names warn", namesErr);
+      } else {
+        nameById = Object.fromEntries((names || []).map((x) => [x.user_id, x.name]));
+      }
+    }
+
+    // 3) Formate comme avant (best = max_score sur la période)
+    const list = (agg || []).map((r) => ({
+      user_id: r.user_id,
+      name: nameById[r.user_id] || "Player",
+      best: r.max_score ?? 0,
+      updated_at: r.last_run, // dernière date (dans la période) utile pour l’affichage
+      mode,
+    }));
+
+    return res.json({ ok: true, list });
   } catch (e) {
     console.error("GET /api/leaderboard error", e);
-    res.status(500).json({ ok: false, error: "server" });
+    return res.status(500).json({ ok: false, error: "server" });
   }
 });
 
@@ -271,10 +321,10 @@ app.get("/api/me", async (req, res) => {
       return res.status(500).json({ ok: false, error: "db" });
     }
 
-    res.json({ ok: true, me: data || null });
+    return res.json({ ok: true, me: data || null });
   } catch (e) {
     console.error("GET /api/me error", e);
-    res.status(500).json({ ok: false, error: "server" });
+    return res.status(500).json({ ok: false, error: "server" });
   }
 });
 
