@@ -727,7 +727,7 @@ class PreloadScene extends Phaser.Scene {
     vid.src = "assets/intro.mp4";
     vid.autoplay = true; vid.loop = true; vid.muted = true; vid.playsInline = true;
     Object.assign(vid.style,{
-      position:"absolute",left:"50%",top:"25%",transform:"translateX(-50%)",
+      position:"absolute",left:"50%",top:"35%",transform:"translateX(-50%)",
       width:"62%",maxWidth:"520px",borderRadius:"14px",zIndex:"9999",pointerEvents:"none"
     });
     root.appendChild(vid); this._loadingVideoEl = vid;
