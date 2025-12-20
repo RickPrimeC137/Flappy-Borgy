@@ -44,7 +44,7 @@ const BONUS_EVERY = 20;
 const BONUS_DURATION = 15000;
 
 const GOLD_PIG_EVERY = 7;          // 1 apparition toutes les 7 paires (mode Gold uniquement)
-const GOLD_PIG_SCALE = 0.30;       // même taille que la pièce (0.09) + 20%
+const GOLD_PIG_SCALE = 0.60;       // même taille que la pièce (0.09) + 20%
 const GOLD_PIG_GAIN_MULT = 3;       // gain = gain d'une pièce * 3
 
 const GOLD_PIG_DATA_URL = "data:image/png;base64," +
