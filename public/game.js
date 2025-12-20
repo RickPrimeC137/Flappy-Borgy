@@ -3000,7 +3000,7 @@ class GameScene extends Phaser.Scene {
     let baseGain;
 
     if (this.skinIsGold) {
-      baseGain = 5;
+      baseGain = 10;
     } else {
       baseGain = isHard ? 2 : 1;
     }
