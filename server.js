@@ -98,15 +98,17 @@ function parsePeriod(q) {
   const periodRaw = typeof q.period === "string" ? q.period : null;
 
   if (periodRaw && ["global", "week", "month"].includes(periodRaw)) return periodRaw;
-  if (scopeRaw && ["all", "week", "month"].includes(scopeRaw)) return scopeRaw === "all" ? "global" : scopeRaw;
+  if (scopeRaw && ["all", "week", "month"].includes(scopeRaw)) {
+    return scopeRaw === "all" ? "global" : scopeRaw;
+  }
   return "global";
 }
 
 function periodFromDateISO(period) {
   const now = new Date();
   const d = new Date(now);
-  if (period === "week") d.setUTCDate(d.getUTCDate() - 7);      // 7 derniers jours
-  if (period === "month") d.setUTCMonth(d.getUTCMonth() - 1);   // 1 mois glissant
+  if (period === "week") d.setUTCDate(d.getUTCDate() - 7); // 7 derniers jours
+  if (period === "month") d.setUTCMonth(d.getUTCMonth() - 1); // 1 mois glissant
   return d.toISOString();
 }
 
@@ -141,7 +143,7 @@ app.post("/api/score", async (req, res) => {
     {
       const { error: runErr } = await supabase.from("score_runs").insert({
         user_id: uid,
-        mode,      // enum public.game_mode ('normal'|'hard')
+        mode, // enum public.game_mode ('normal'|'hard')
         score: val,
         // created_at default now()
       });
@@ -170,7 +172,6 @@ app.post("/api/score", async (req, res) => {
         name,
         best: val,
         mode,
-        // updated_at = default now()
       });
       if (insErr) {
         console.error("[DB] insert error", insErr);
@@ -229,7 +230,7 @@ app.get("/api/leaderboard", async (req, res) => {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    // GLOBAL: all-time best depuis "scores" (inchangé)
+    // GLOBAL: all-time best depuis "scores"
     if (period === "global") {
       const { data, error } = await supabase
         .from("scores")
@@ -288,7 +289,7 @@ app.get("/api/leaderboard", async (req, res) => {
       user_id: r.user_id,
       name: nameById[r.user_id] || "Player",
       best: r.max_score ?? 0,
-      updated_at: r.last_run, // dernière date (dans la période) utile pour l’affichage
+      updated_at: r.last_run,
       mode,
     }));
 
