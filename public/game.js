@@ -2795,7 +2795,7 @@ class GameScene extends Phaser.Scene {
         const dy = c.y - this.player.y;
         const distSq = dx * dx + dy * dy;
 
-        const pickupRadius = 130;
+        const pickupRadius = 90;
 
         if (distSq <= pickupRadius * pickupRadius) {
           const cx2 = c.x;
@@ -3174,13 +3174,13 @@ class GameScene extends Phaser.Scene {
     pig.body.setVelocityX(vx);
 
     // hitbox identique aux pièces
-    let targetSide = 140;
+    let targetSide = 90;
     try {
       const bonusTex = this.textures.get("bonus_sb");
       const bonusImg = bonusTex.getSourceImage?.();
       if (bonusImg) {
         const bonusDisplayW = bonusImg.width * 0.55;
-        targetSide = bonusDisplayW * 5.0;
+        targetSide = bonusDisplayW * 4.0;
       }
     } catch (e) {
       console.warn("calc bonus hitbox error", e);
@@ -3207,7 +3207,7 @@ class GameScene extends Phaser.Scene {
     let baseGain;
 
     if (this.skinIsGold) {
-      baseGain = 10;
+      baseGain = 15;
     } else {
       baseGain = isHard ? 2 : 1;
     }
