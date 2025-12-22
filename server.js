@@ -94,16 +94,41 @@ function parsePeriod(q) {
   const periodRaw = typeof q.period === "string" ? q.period : null;
 
   if (periodRaw && ["global", "week", "month"].includes(periodRaw)) return periodRaw;
-  if (scopeRaw && ["all", "week", "month"].includes(scopeRaw)) return scopeRaw === "all" ? "global" : scopeRaw;
+  if (scopeRaw && ["all", "week", "month"].includes(scopeRaw))
+    return scopeRaw === "all" ? "global" : scopeRaw;
   return "global";
 }
 
+/**
+ * ✅ Fenêtres CALENDRIER en UTC (sans dépendance)
+ * - week  : depuis lundi 00:00 UTC (semaine ISO)
+ * - month : depuis le 1er du mois 00:00 UTC
+ *
+ * ⚠️ Si tu veux “semaine/mois” selon l’heure France (Europe/Paris),
+ * il faut une lib timezone (ex: luxon). Ici c’est UTC.
+ */
 function periodFromDateISO(period) {
   const now = new Date();
-  const d = new Date(now);
-  if (period === "week") d.setUTCDate(d.getUTCDate() - 7);
-  if (period === "month") d.setUTCMonth(d.getUTCMonth() - 1);
-  return d.toISOString();
+
+  if (period === "week") {
+    // on part d'aujourd'hui à 00:00 UTC
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    let day = d.getUTCDay(); // 0=dimanche..6=samedi
+    if (day === 0) day = 7;  // 7=dimanche pour logique ISO
+    // recule jusqu'à lundi
+    d.setUTCDate(d.getUTCDate() - (day - 1));
+    d.setUTCHours(0, 0, 0, 0);
+    return d.toISOString();
+  }
+
+  if (period === "month") {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+    d.setUTCHours(0, 0, 0, 0);
+    return d.toISOString();
+  }
+
+  // global: pas utilisé (global lit la table "scores"), mais safe
+  return new Date(0).toISOString();
 }
 
 /* ---------- Routes ---------- */
